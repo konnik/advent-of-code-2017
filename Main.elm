@@ -1,5 +1,7 @@
 module Main exposing (main)
 
+import Types exposing (..)
+
 import Html exposing (Html, h1, a, pre, div, text, input, button, program)
 import Html.Attributes exposing (href)
 import Html.Events exposing (onClick)
@@ -7,7 +9,8 @@ import Html.Events exposing (onClick)
 import Http
 import RemoteData exposing (WebData,RemoteData(..))
 
-type alias Solver = String -> String
+import Year2015.Day7
+
 type alias Id = String
 type alias Name = String
 type alias Puzzle = (Id, Name, Solver)
@@ -30,6 +33,8 @@ init : ( Model, Cmd Msg )
 init = ({ puzzles = 
             [ ("test1", "Test1", dummySolver "test1")
             , ("test2", "Test2", dummySolver "test2")
+            , ("2015-day-7", "2015 Dag 7", Year2015.Day7.solver)
+            , ("2015-day-7-test", "2015 Dag 7 - test", Year2015.Day7.solver)
             ]
         , selected = Nothing
         , input = NotAsked
