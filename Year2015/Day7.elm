@@ -11,20 +11,16 @@ import Types exposing (Solver, TestRunner, TestResult)
 type alias Destination = String
 type alias Id = String
 
-type ValueOrWire 
-    = Value Int 
-    | Wire Id
-
-
 type Gate 
-    = And ValueOrWire ValueOrWire
-    | Or ValueOrWire ValueOrWire
-    | Not ValueOrWire
-    | RShift ValueOrWire Int
-    | LShift ValueOrWire Int
+    = And Source Source
+    | Or Source Source
+    | Not Source
+    | RShift Source Int
+    | LShift Source Int
 
 type Source 
-        = ValueOrWire ValueOrWire
+        = Wire Id
+        | Value Int
         | Gate Gate
 
 type alias Connection = (Id, Source)
@@ -38,12 +34,16 @@ test =
     , (int "x" == 0, "int - ska returnera 0 som default")
     , (valueOrWire "xx" == Wire "xx", "valueOrWire - ska mappa 'xx' till Wire xx")
     , (valueOrWire "7" == Value 7, "valueOrWire - ska mappa '7' till Value 7")
+    , (parseLine "19138 -> b" == Just ("b", Value 19138), "parseLine - value input")
+    , (parseLine "ci RSHIFT 1 -> db" == Just ("db", Gate (RShift (Wire "ci") 1)), "parseLine - RSHIFT - wire")
+    , (parseLine "234 RSHIFT 4 -> db" == Just ("db", Gate (RShift (Value 234) 4)), "parseLine - RSHIFT - value")
+    , (parseLine "NOT tx -> yr" == Just ("yr", Gate (Not (Wire "tx"))), "parseLine - NOT - wire")
     ]
 
 int : String -> Int
 int n = Result.withDefault 0 (String.toInt n)
 
-valueOrWire : String -> ValueOrWire
+valueOrWire : String -> Source
 valueOrWire str = 
   case String.toInt str of
     Ok n -> Value n
@@ -51,17 +51,14 @@ valueOrWire str =
 
 parseLine : String -> Maybe Connection
 parseLine line = 
-    let 
-        tokens = String.words line
-    in 
-        case tokens of 
-            a::"->"::w::[] -> Just (w, ValueOrWire (valueOrWire a))
-            a::"AND"::b::"->"::w::[] -> Just (w, Gate (And (valueOrWire  a) (valueOrWire b)))
-            a::"OR"::b::"->"::w::[] -> Just (w, Gate (Or (valueOrWire  a) (valueOrWire b)))
-            a::"LSHIFT"::b::"->"::w::[] -> Just (w, Gate (LShift (valueOrWire  a) (int b)))
-            a::"RSHIFT"::b::"->"::w::[] -> Just (w, Gate (RShift (valueOrWire  a) (int b)))
-            "NOT"::a::"->"::w::[] -> Just (w, Gate (Not (valueOrWire  a)))
-            _ -> Nothing
+    case String.words line of 
+        [a, "->", w] -> Just (w, valueOrWire a)
+        [a, "AND", b, "->", w] -> Just (w, Gate (And (valueOrWire  a) (valueOrWire b)))
+        [a, "OR", b, "->", w] -> Just (w, Gate (Or (valueOrWire  a) (valueOrWire b)))
+        [a, "LSHIFT", b, "->", w] -> Just (w, Gate (LShift (valueOrWire  a) (int b)))
+        [a, "RSHIFT", b, "->", w] -> Just (w, Gate (RShift (valueOrWire  a) (int b)))
+        ["NOT", a, "->", w ] -> Just (w, Gate (Not (valueOrWire  a)))
+        _ -> Nothing
 
 parseCircuit : String -> Circuit
 parseCircuit input = 
@@ -69,26 +66,29 @@ parseCircuit input =
         |> List.filterMap parseLine
         |> Dict.fromList
 
-value : Circuit -> ValueOrWire -> Int
-value c val =
-    case val of
-        Value n -> n
-        Wire id -> 
-            case Dict.get id c of 
-                Just (ValueOrWire w) -> value c w
-                Just (Gate (And a b)) -> Bitwise.and 0xffff (Bitwise.and (value c a) (value c b))
-                Just (Gate (Or a b)) -> Bitwise.and 0xffff (Bitwise.or (value c a) (value c b))
-                Just (Gate (Not a )) -> Bitwise.and 0xffff (Bitwise.complement (value c a))
-                Just (Gate (RShift w n )) -> Bitwise.and 0xffff (Bitwise.shiftRightZfBy n (value c w)) 
-                Just (Gate (LShift w n )) -> Bitwise.and 0xffff (Bitwise.shiftLeftBy n (value c w))
-                Nothing -> 0xff
+value : Circuit -> Source -> Int
+value c source =
+    case source of
+        Value n -> 
+            n
+        Wire id ->
+            case Dict.get id c of
+                Nothing -> 0
+                Just source -> value c source
+        Gate gate ->
+            case gate of 
+                And a b -> Bitwise.and 0xffff (Bitwise.and (value c a) (value c b))
+                Or a b -> Bitwise.and 0xffff (Bitwise.or (value c a) (value c b))
+                Not a -> Bitwise.and 0xffff (Bitwise.complement (value c a))
+                RShift a n -> Bitwise.and 0xffff (Bitwise.shiftRightZfBy n (value c a)) 
+                LShift a n -> Bitwise.and 0xffff (Bitwise.shiftLeftBy n (value c a))
 
 
 solver : Solver
 solver input = 
     let 
         circuit = parseCircuit input
-        answer = value circuit (Wire "a")
+        answer = value circuit (Wire "h")
     in 
         (toString answer) ++ "    " ++ (toString circuit)
 

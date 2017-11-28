@@ -13,7 +13,7 @@ import Year2015.Day7
 
 type alias Id = String
 type alias Name = String
-type alias Puzzle = (Id, Name, Solver)
+type alias Puzzle = (Id, Name, Solver, Maybe TestRunner)
 type alias PuzzleInput = String
 
 type alias Model = { puzzles : List Puzzle,
@@ -31,10 +31,10 @@ dummySolver id input = id ++ ": " ++ (toString (String.length input))
 
 init : ( Model, Cmd Msg )
 init = ({ puzzles = 
-            [ ("test1", "Test1", dummySolver "test1")
-            , ("test2", "Test2", dummySolver "test2")
-            , ("2015-day-7", "2015 Dag 7", Year2015.Day7.solver)
-            , ("2015-day-7-test", "2015 Dag 7 - test", Year2015.Day7.solver)
+            [ ("test1", "Test1", dummySolver "test1", Nothing)
+            , ("test2", "Test2", dummySolver "test2", Nothing)
+            , ("2015-day-7", "2015 Dag 7", Year2015.Day7.solver, Just Year2015.Day7.test)
+            , ("2015-day-7-test", "2015 Dag 7 - test", Year2015.Day7.solver, Nothing)
             ]
         , selected = Nothing
         , input = NotAsked
@@ -47,9 +47,24 @@ view model =
     [ title "Advent of Code 2017 in Elm"
     , puzzleMenu model.puzzles
     , solverPanel model
+    , testPanel model
     , inputPanel model 
     , debugPanel model
     ]
+
+
+testPanel : Model -> Html Msg
+testPanel model = 
+    case model.selected of  
+        Just (_,_,_,Just testRunner) -> 
+            div [] (List.map testRow testRunner)
+        _ -> 
+            div [] [text "no testrunner.."]
+
+testRow : TestResult -> Html Msg
+testRow result = 
+    div [] [ text (toString result)]
+
 
 solverPanel : Model -> Html Msg
 solverPanel model = 
@@ -57,7 +72,7 @@ solverPanel model =
         case model.input of 
             Success input -> 
                 case model.selected of
-                    Just (_,_,solver) -> 
+                    Just (_,_,solver,_) -> 
                         button [onClick (SolvePuzzle solver input)] [text "Solve puzzle "]
                     Nothing -> 
                         div [] []
@@ -91,7 +106,7 @@ debugPanel model =
 puzzleLink : Puzzle -> Html Msg
 puzzleLink puzzle =
     let 
-        (id, name, _) = puzzle
+        (id, name, _, _) = puzzle
     in
         a [href ("#" ++ id), onClick (PuzzleSelected puzzle) ] [text name]
 
@@ -106,7 +121,7 @@ puzzleMenu puzzles =
 fetchPuzzleInput : Puzzle -> Cmd Msg
 fetchPuzzleInput puzzle = 
     let 
-        (id, _, _) = puzzle
+        (id, _, _, _) = puzzle
     in
         Http.getString ("inputs/" ++ id ++ ".txt")
             |> RemoteData.sendRequest
