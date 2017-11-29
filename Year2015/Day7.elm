@@ -3,10 +3,10 @@ module Year2015.Day7 exposing (solver, test)
 
 import Dict exposing (Dict)
 import Bitwise
+import Debug 
 
 
 import Types exposing (Solver, TestRunner, TestResult)
-
 
 type alias Destination = String
 type alias Id = String
@@ -66,31 +66,57 @@ parseCircuit input =
         |> List.filterMap parseLine
         |> Dict.fromList
 
-value : Circuit -> Source -> Int
+
+
+binaryOp : Circuit -> Source -> Source -> (Int -> Int -> Int) -> (Int, Circuit)
+binaryOp c a b f = 
+    let 
+        (valueA, c1) = value c a
+        (valueB, c2) = value c1 b
+    in 
+        (Bitwise.and 0xffff (f valueA valueB), c2)
+
+unaryOp : Circuit -> Source -> (Int -> Int) -> (Int, Circuit)
+unaryOp c a f = 
+    let 
+        (valueA, c1) = value c a
+    in 
+        (Bitwise.and 0xffff (f valueA ), c1)
+
+
+cacheAndReturnValue : Circuit -> Id -> Int -> (Int, Circuit)
+cacheAndReturnValue c id v = 
+    (v, Dict.insert id (Value v) c)
+
+value : Circuit -> Source -> (Int, Circuit)
 value c source =
-    case source of
+    case (Debug.log "value: " source) of
         Value n -> 
-            n
+            (n, c)
         Wire id ->
             case Dict.get id c of
-                Nothing -> 0
-                Just source -> value c source
+                Nothing -> Debug.log "NOTHING: " (0,c)
+                Just newSource -> 
+                    let
+                        (v2, c2) = value c newSource
+                    in
+                        cacheAndReturnValue c2 id v2
         Gate gate ->
             case gate of 
-                And a b -> Bitwise.and 0xffff (Bitwise.and (value c a) (value c b))
-                Or a b -> Bitwise.and 0xffff (Bitwise.or (value c a) (value c b))
-                Not a -> Bitwise.and 0xffff (Bitwise.complement (value c a))
-                RShift a n -> Bitwise.and 0xffff (Bitwise.shiftRightZfBy n (value c a)) 
-                LShift a n -> Bitwise.and 0xffff (Bitwise.shiftLeftBy n (value c a))
+                And a b -> binaryOp c a b Bitwise.and
+                Or a b -> binaryOp c a b Bitwise.or
+                Not a -> unaryOp c a Bitwise.complement
+                RShift a n -> unaryOp c a (Bitwise.shiftRightZfBy n) 
+                LShift a n -> unaryOp c a (Bitwise.shiftLeftBy n )
 
 
 solver : Solver
 solver input = 
     let 
         circuit = parseCircuit input
-        answer = value circuit (Wire "a")
+        (answer, circuit2) = value circuit (Wire "a")
     in 
-        (toString answer) ++ "    " ++ (toString circuit)
+        (toString answer) ++ "    " ++ (toString circuit2)
 
 
 {- 
