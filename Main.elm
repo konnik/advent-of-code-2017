@@ -2,8 +2,8 @@ module Main exposing (main)
 
 import Types exposing (..)
 
-import Html exposing (Html, h1, a, pre, div, text, input, button, program)
-import Html.Attributes exposing (href)
+import Html exposing (Html, table, tr, td, th, thead, tbody, h1, h2, a, p, pre, div, text, input, button, program)
+import Html.Attributes exposing (href, align)
 import Html.Events exposing (onClick)
 
 import Http
@@ -53,45 +53,70 @@ view model =
     ]
 
 
+testTable : List TestResult -> Html Msg 
+testTable testResults = 
+    table [] [
+        thead [] [
+            tr [] [
+                th [align "left"] [text "Test"],
+                th [align "left"] [ text "Result"]
+            ]
+        ],
+        tbody [] (List.map testRow testResults)
+    ]
+
 testPanel : Model -> Html Msg
 testPanel model = 
-    case model.selected of  
-        Just (_,_,_,Just testRunner) -> 
-            div [] (List.map testRow testRunner)
-        _ -> 
-            div [] [text "no testrunner.."]
+    p [] [
+        h2 [] [ text "Tests"],
+        case model.selected of  
+            Just (_,_,_,Just testRunner) -> testTable testRunner
+            _ -> div [] [text "No testrunner defined for this day."]
+    ]
 
 testRow : TestResult -> Html Msg
-testRow result = 
-    div [] [ text (toString result)]
+testRow (ok, desc) = 
+    tr [] [ 
+        td [] [text desc],
+        td [] [text (toString ok)]
+    ]
 
 
 solverPanel : Model -> Html Msg
 solverPanel model = 
-    div [] [
-        case model.input of 
-            Success input -> 
-                case model.selected of
-                    Just (_,_,solver,_) -> 
-                        button [onClick (SolvePuzzle solver input)] [text "Solve puzzle "]
-                    Nothing -> 
-                        div [] []
-            _ -> 
-                div [] []
-    ,
-    case model.answer of
-        Nothing -> text ""
-        Just answer -> text ("answer: " ++ answer)
-    ]
 
+    case model.selected of
+        Just (_,name,solver,_) -> 
+            p [] [
+                h2 [] [text ("Puzzle: " ++ name)],
+                button [onClick (SolvePuzzle solver (input model.input))] [text "Solve puzzle "],
+                case model.answer of
+                    Nothing -> text ""
+                    Just answer -> text ("Answer: " ++ answer)
+                ]
+        Nothing -> 
+            p [] [
+                h2 [] [text "Puzzle"],
+                text "Select ap Puzzle from menu."
+            ]
+
+
+input : WebData String -> String
+input input = 
+    case input of
+        Success txt -> txt
+        _ -> ""
 
 inputPanel : Model -> Html Msg
 inputPanel model = 
-    case model.input of
-        NotAsked -> div [] [text "Ingen input har laddats..."]
-        Loading ->  div [] [text "Laddar..."]
-        Failure err -> div [] [text ("Fel vid laddning: " ++ (toString err))]        
-        Success input -> div [] [pre [] [text input]]
+    p [] [
+        h2 [] [text "Input"],
+        case model.input of
+            NotAsked -> div [] [text "Ingen input har laddats..."]
+            Loading ->  div [] [text "Laddar..."]
+            Failure err -> div [] [text ("Fel vid laddning: " ++ (toString err))]        
+            Success input -> div [] [pre [] [text input]]
+    ]
 
 title : String -> Html Msg
 title titleText = 
@@ -99,8 +124,10 @@ title titleText =
 
 debugPanel : Model -> Html Msg
 debugPanel model = 
-    div [] [text (toString { model | input = NotAsked})]
-
+    p [] [
+        h2 [] [ text "Debug"],
+        pre [] [text (toString { model | input = NotAsked})]
+    ]
 
 
 puzzleLink : Puzzle -> Html Msg

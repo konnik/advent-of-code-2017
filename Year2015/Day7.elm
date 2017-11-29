@@ -88,7 +88,7 @@ solver : Solver
 solver input = 
     let 
         circuit = parseCircuit input
-        answer = value circuit (Wire "h")
+        answer = value circuit (Wire "a")
     in 
         (toString answer) ++ "    " ++ (toString circuit)
 
