@@ -1,12 +1,11 @@
-
-module Year2015.Day7 exposing (solver, test)
+module Puzzles.Year2015.Day7 exposing (solver, test)
 
 import Dict exposing (Dict)
 import Bitwise
 import Debug 
 
 
-import Types exposing (Solver, TestRunner, TestResult)
+import AdventOfCode.Types exposing (Solver, TestRunner, TestResult)
 
 type alias Destination = String
 type alias Id = String
