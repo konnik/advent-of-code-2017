@@ -115,8 +115,11 @@ solver input =
     let 
         circuit = parseCircuit input
         (answer, circuit2) = value circuit (Wire "a")
+
+        circuit3 = Dict.insert "b" (Value answer) circuit
+        (answer2, circuit4) = value circuit3 (Wire "a")
     in 
-        (toString answer) ++ "    " ++ (toString circuit2)
+        "Answer 1: "  ++ (toString answer) ++ ",    Answer 2: " ++ (toString answer2)
 
 
 {- 
