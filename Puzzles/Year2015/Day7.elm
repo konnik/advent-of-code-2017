@@ -9,7 +9,7 @@ import Debug
 -- public interface
 
 puzzle : Puzzle
-puzzle = (2015, 7, "Some Assembly Required", solver, test)
+puzzle = (2015, 7, "Some Assembly Required", test, part1, part2)
 
 -- private implementation details
 
@@ -115,16 +115,24 @@ value c source =
                 LShift a n -> unaryOp c a (Bitwise.shiftLeftBy n )
 
 
-solver : PuzzleSolver
-solver input = 
+part1 : PuzzleSolver
+part1 input = 
     let 
         circuit = parseCircuit input
         (answer, circuit2) = value circuit (Wire "a")
+    in 
+        toString answer
 
+part2 : PuzzleSolver
+part2 input = 
+    let 
+        circuit = parseCircuit input
+        (answer, circuit2) = value circuit (Wire "a")
+        
         circuit3 = Dict.insert "b" (Value answer) circuit
         (answer2, circuit4) = value circuit3 (Wire "a")
     in 
-        "Answer 1: "  ++ (toString answer) ++ ",    Answer 2: " ++ (toString answer2)
+        toString answer2
 
 
 {- 

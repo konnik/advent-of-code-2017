@@ -38,8 +38,8 @@ testPanel model =
     p [] [
         h2 [] [ text "Tests"],
         case model.selected of  
-            Just (_,_,_,_,testRunner) -> testTable testRunner
-            _ -> div [] [text "No testrunner defined for this day."]
+            Just (_,_,_,tests, _,_) -> testTable tests
+            _ -> div [] [text "Select a puzzle to run tests"]
     ]
 
 testRow : TestResult -> Html Msg
@@ -58,20 +58,21 @@ puzzleTitle year day desc =
 
 solverPanel : Model -> Html Msg
 solverPanel model = 
-
     case model.selected of
-        Just (year,day,desc,solver,_) -> 
+        Just (year,day,desc,_,part1,part2) -> 
             p [] [
                 h2 [] [text (puzzleTitle year day desc)],
-                button [onClick (SolvePuzzle solver (input model.input))] [text "Solve puzzle "],
+                button [onClick (SolvePuzzle part1 (input model.input))] [text "Solve part 1"],
+                button [onClick (SolvePuzzle part2 (input model.input))] [text "Solve part 2"],
                 case model.answer of
                     Nothing -> text ""
-                    Just answer -> text ("Answer: " ++ answer)
+                    Just answer -> 
+                        p [] [ text ("Answer: " ++ answer)]
                 ]
         Nothing -> 
             p [] [
                 h2 [] [text "Puzzle"],
-                text "Select ap Puzzle from menu."
+                text "Select a puzzle from menu."
             ]
 
 
@@ -107,7 +108,7 @@ debugPanel model =
 puzzleLink : Puzzle -> Html Msg
 puzzleLink puzzle =
     let 
-        (year, day, desc, _, _) = puzzle
+        (year, day, desc, _, _, _) = puzzle
         hash = (toString year) ++ "-day-" ++ (toString day)
     in
         a [href ("#" ++ hash), onClick (PuzzleSelected puzzle) ] [text (puzzleTitle year day desc)]

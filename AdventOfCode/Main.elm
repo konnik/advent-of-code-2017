@@ -22,7 +22,7 @@ inputUrl year day =
 fetchPuzzleInput : Puzzle -> Cmd Msg
 fetchPuzzleInput puzzle = 
     let 
-        (year, day, _, _, _) = puzzle
+        (year, day, _, _, _, _) = puzzle
     in
         Http.getString (inputUrl year day)
             |> RemoteData.sendRequest
