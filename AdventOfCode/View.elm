@@ -1,6 +1,7 @@
 module AdventOfCode.View exposing ( view )
 
-import AdventOfCode.Types exposing (..)
+import AdventOfCode.Puzzle exposing (..)
+import AdventOfCode.Model exposing (..)
 
 import RemoteData exposing (WebData,RemoteData(..))
 

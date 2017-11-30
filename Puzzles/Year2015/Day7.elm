@@ -1,11 +1,17 @@
-module Puzzles.Year2015.Day7 exposing (solver, test)
+module Puzzles.Year2015.Day7 exposing (puzzle)
+
+import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 
 import Dict exposing (Dict)
 import Bitwise
 import Debug 
 
+-- public interface
 
-import AdventOfCode.Types exposing (Solver, TestRunner, TestResult)
+puzzle : Puzzle
+puzzle = (2015, 7, "Some Assembly Required", solver, test)
+
+-- private implementation details
 
 type alias Destination = String
 type alias Id = String
@@ -27,7 +33,7 @@ type alias Connection = (Id, Source)
 type alias Circuit = Dict Id Source
 
 
-test : TestRunner 
+test : TestSuite
 test = 
     [ (int "78" == 78, "int - ska returnera talet")
     , (int "x" == 0, "int - ska returnera 0 som default")
@@ -109,7 +115,7 @@ value c source =
                 LShift a n -> unaryOp c a (Bitwise.shiftLeftBy n )
 
 
-solver : Solver
+solver : PuzzleSolver
 solver input = 
     let 
         circuit = parseCircuit input
