@@ -3,7 +3,7 @@ module Puzzles.Year2017.Day1 exposing (..)
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 
 puzzle : Puzzle
-puzzle = (2017,1,"???", tests, part1, part2)
+puzzle = (2017,1,"Inverse Captcha", tests, part1, part2)
 
 tests : TestSuite
 tests = []
