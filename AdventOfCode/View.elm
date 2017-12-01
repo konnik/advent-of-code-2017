@@ -13,7 +13,7 @@ view : Model -> Html Msg
 view model = 
     div [] 
     [ title "Advent of Code 2017 in Elm"
-    , puzzleMenu model.puzzles
+    , puzzleIndex model
     , solverPanel model
     , testPanel model
     , inputPanel model 
@@ -111,12 +111,31 @@ puzzleLink puzzle =
         (year, day, desc, _, _, _) = puzzle
         hash = (toString year) ++ "-day-" ++ (toString day)
     in
-        a [href ("#" ++ hash), onClick (PuzzleSelected puzzle) ] [text (puzzleTitle year day desc)]
+        a [href ("#" ++ hash), onClick (PuzzleSelected puzzle) ] [text (toString day)]
 
-puzzleMenu : List Puzzle -> Html Msg
-puzzleMenu puzzles = 
-    div [] 
-    (
-        List.intersperse (text " | ")
-            (List.map puzzleLink puzzles)
-    )
+puzzleIndex : Model -> Html Msg
+puzzleIndex model = 
+    p []
+        [ puzzlesOfYear 2015 model.puzzles
+        , puzzlesOfYear 2016 model.puzzles
+        , puzzlesOfYear 2017 model.puzzles
+        ]
+
+puzzlesOfYear : Int -> List Puzzle -> Html Msg
+puzzlesOfYear year puzzles = 
+    div [] (
+        List.append
+            [ text (toString year), text ": "]
+            (puzzles
+                |> List.filter (byYear year)
+                |> List.map puzzleLink
+                |> List.intersperse (text " ")
+            )
+        )
+    
+byYear : Int -> Puzzle -> Bool
+byYear filterYear puzzle = 
+    let 
+        (year,_,_,_,_,_) = puzzle
+    in
+        year == filterYear 
