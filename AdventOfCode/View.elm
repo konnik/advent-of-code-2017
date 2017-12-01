@@ -16,12 +16,22 @@ view model =
     div [] 
     [ title "Advent of Code 2017 in Elm"
     , puzzleIndex model
-    , solverPanel model
-    , testPanel model
-    , inputPanel model 
-    , debugPanel model
+    , puzzleContainer model
     ]
 
+
+puzzleContainer : Model -> Html Msg
+puzzleContainer model = 
+    case model.selected of
+        Nothing -> 
+            text "Select a puzzle above..."
+        _ -> 
+            div [] 
+                [ solverPanel model
+                , testPanel model
+                , inputPanel model 
+                , debugPanel model
+                ]
 
 testTable : List TestResult -> Html Msg 
 testTable testResults = 
