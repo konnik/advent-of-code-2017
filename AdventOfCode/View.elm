@@ -9,6 +9,8 @@ import Html exposing (Html, table, tr, td, th, thead, tbody, h1, h2, a, p, pre, 
 import Html.Attributes exposing (href, align)
 import Html.Events exposing (onClick)
 
+import Set
+
 view : Model -> Html Msg
 view model = 
     div [] 
@@ -113,16 +115,24 @@ puzzleLink puzzle =
     in
         a [href ("#" ++ hash), onClick (PuzzleSelected puzzle) ] [text (toString day)]
 
+
+
+uniqueYears : List Puzzle -> List Int
+uniqueYears puzzles = 
+    puzzles
+        |> List.map puzzleYear
+        |> Set.fromList
+        |> Set.toList
+
 puzzleIndex : Model -> Html Msg
 puzzleIndex model = 
-    p []
-        [ puzzlesOfYear 2015 model.puzzles
-        , puzzlesOfYear 2016 model.puzzles
-        , puzzlesOfYear 2017 model.puzzles
-        ]
+    p [] ( 
+        uniqueYears model.puzzles
+            |> List.map (puzzlesOfYear model.puzzles)
+        )
 
-puzzlesOfYear : Int -> List Puzzle -> Html Msg
-puzzlesOfYear year puzzles = 
+puzzlesOfYear : List Puzzle -> Int -> Html Msg
+puzzlesOfYear puzzles year = 
     div [] (
         List.append
             [ text (toString year), text ": "]
@@ -132,7 +142,10 @@ puzzlesOfYear year puzzles =
                 |> List.intersperse (text " ")
             )
         )
-    
+
+puzzleYear : Puzzle -> Year
+puzzleYear (year,_,_,_,_,_) = year    
+
 byYear : Int -> Puzzle -> Bool
 byYear filterYear puzzle = 
     let 
