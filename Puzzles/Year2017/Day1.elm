@@ -12,12 +12,17 @@ part1 : PuzzleSolver
 part1 input = 
     input 
         |> parseInput
-        |> makePairs
+        |> makePairs 1
         |> sumTwins
         |> toString 
 
 part2 : PuzzleSolver
-part2 input = "not implemented"
+part2 input =
+    input 
+        |> parseInput
+        |> makePairs ((String.length input)//2)
+        |> sumTwins
+        |> toString 
 
 
 parseInput : String -> List Int 
@@ -37,13 +42,13 @@ sumTwins list =
 isTwin : (Int, Int) -> Bool
 isTwin (a,b) = a == b
 
-makePairs : List a -> List (a,a)
-makePairs list = 
-    List.map2 (,) list (rotateLeft list) 
+makePairs : Int -> List a -> List (a,a)
+makePairs n list = 
+    List.map2 (,) list (rotateLeft n list) 
 
-rotateLeft : List a -> List a
-rotateLeft list = 
-    (List.drop 1 list) ++ (List.take 1 list)
+rotateLeft : Int -> List a -> List a
+rotateLeft n list = 
+    (List.drop n list) ++ (List.take n list)
 
 
 
