@@ -5,8 +5,8 @@ import AdventOfCode.Model exposing (..)
 
 import RemoteData exposing (WebData,RemoteData(..))
 
-import Html exposing (Html, table, tr, td, th, thead, tbody, h1, h2, a, p, pre, div, text, input, button, program)
-import Html.Attributes exposing (href, align)
+import Html exposing (Html, table, tr, td, th, thead, tbody, h1, h2, a, p, span, pre, div, text, input, button, program)
+import Html.Attributes exposing (href, align, style)
 import Html.Events exposing (onClick)
 
 import Set
@@ -117,15 +117,36 @@ debugPanel model =
     ]
 
 
-puzzleLink : Puzzle -> Html Msg
-puzzleLink puzzle =
+puzzleForYearAndDay : List Puzzle -> Int -> Int -> Maybe Puzzle
+puzzleForYearAndDay puzzles year day = 
+    puzzles 
+        |> List.filter (\ (y, d, _ , _, _, _) -> y == year && d == day )
+        |> List.head 
+
+
+
+
+puzzleLink : List Puzzle -> Int -> Int -> Html Msg
+puzzleLink allPuzzles year day =
     let 
-        (year, day, desc, _, _, _) = puzzle
+        commonStyle = 
+            [ ("height","20px")
+            , ("width","20px")
+            , ("display", "inline-block")
+            , ("text-align","center")
+            , ("vertical-align", "middle")
+            , ("padding", "5px")
+            , ("text-decoration", "none")
+            ]
+
+        clickable = style (List.append [("font-weight", "bold"), ("color","yellow"), ("background-color","green")] commonStyle)
+        notClickable = style (List.append [] commonStyle)
         hash = (toString year) ++ "-day-" ++ (toString day)
     in
-        a [href ("#" ++ hash), onClick (PuzzleSelected puzzle) ] [text (toString day)]
-
-
+        case puzzleForYearAndDay allPuzzles year day of
+            Nothing -> span [notClickable] [text (toString day)]
+            Just ((year, day, _ , _, _, _) as p) -> 
+                a [href ("#" ++ hash), onClick (PuzzleSelected p), clickable ] [text (toString day)]
 
 uniqueYears : List Puzzle -> List Int
 uniqueYears puzzles = 
@@ -136,19 +157,23 @@ uniqueYears puzzles =
 
 puzzleIndex : Model -> Html Msg
 puzzleIndex model = 
-    p [] ( 
-        uniqueYears model.puzzles
+    pre [] ( 
+        [2015, 2016, 2017]
             |> List.map (puzzlesOfYear model.puzzles)
         )
+
+isSolved : Int -> Int -> List Puzzle -> Bool
+isSolved year day puzzles = 
+    (List.length (List.filter (\(y, d, _,_,_,_) -> year == y && day == d) puzzles)) > 0
+
 
 puzzlesOfYear : List Puzzle -> Int -> Html Msg
 puzzlesOfYear puzzles year = 
     div [] (
-        List.append
-            [ text (toString year), text ": "]
-            (puzzles
-                |> List.filter (byYear year)
-                |> List.map puzzleLink
+            text (toString year) 
+            :: text ": " 
+            :: (List.range 1 25
+                |> List.map (puzzleLink puzzles year)
                 |> List.intersperse (text " ")
             )
         )
