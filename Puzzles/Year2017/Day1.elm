@@ -19,21 +19,18 @@ tests = [ (part1 "1122" == "3",     "Part 1 - 1122 produces a sum of 3 (1 + 2) b
         ]
 
 part1 : PuzzleSolver
-part1 input = 
-    input 
-        |> parseInput
-        |> makePairs 1
-        |> sumTwins
-        |> toString 
+part1 input = solveWithOffset 1 input
 
 part2 : PuzzleSolver
-part2 input =
+part2 input = solveWithOffset ((String.length input)//2) input
+
+solveWithOffset : Int -> PuzzleSolver
+solveWithOffset n input =
     input 
         |> parseInput
-        |> makePairs ((String.length input)//2)
+        |> makePairsWithOffset n
         |> sumTwins
         |> toString 
-
 
 parseInput : String -> List Int 
 parseInput input = 
@@ -52,8 +49,8 @@ sumTwins list =
 isTwin : (Int, Int) -> Bool
 isTwin (a,b) = a == b
 
-makePairs : Int -> List a -> List (a,a)
-makePairs n list = 
+makePairsWithOffset : Int -> List a -> List (a,a)
+makePairsWithOffset n list = 
     List.map2 (,) list (rotateLeft n list) 
 
 rotateLeft : Int -> List a -> List a
