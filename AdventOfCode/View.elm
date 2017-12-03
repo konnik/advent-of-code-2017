@@ -35,22 +35,37 @@ puzzleContainer model =
 
 testTable : List TestResult -> Html Msg 
 testTable testResults = 
-    table [] [
-        thead [] [
-            tr [] [
-                th [align "left"] [text "Test"],
-                th [align "left"] [ text "Result"]
-            ]
-        ],
-        tbody [] (List.map testRow testResults)
+    p [] [
+        table [] [
+            thead [] [
+                tr [] [
+                    th [align "left"] [text "Test"],
+                    th [align "left"] [ text "Result"]
+                ]
+            ],
+            tbody [] (List.map testRow testResults)
+        ]
     ]
+
+testSummary : List TestResult -> Html Msg
+testSummary tests = 
+    let
+        failedTests = List.length (List.filter (\ (ok, _) -> ok == False) tests) 
+    in
+        case failedTests of 
+            0 -> p [ style [("color", "green")]] [ text "All tests are green!" ]
+            _ -> p [ style [("color", "red")]] [ text ("There are " ++ (toString failedTests) ++ " test failures.") ]
 
 testPanel : Model -> Html Msg
 testPanel model = 
     p [] [
         h2 [] [ text "Tests"],
         case model.selected of  
-            Just (_,_,_,tests, _,_) -> testTable tests
+            Just (_,_,_,tests, _,_) ->
+                div [] [
+                    testSummary tests, 
+                    testTable tests
+                ]
             _ -> div [] [text "Select a puzzle to run tests"]
     ]
 
@@ -58,9 +73,14 @@ testRow : TestResult -> Html Msg
 testRow (ok, desc) = 
     tr [] [ 
         td [] [text desc],
-        td [] [text (toString ok)]
+        td [] [testStatus ok]
     ]
 
+testStatus : Bool -> Html Msg
+testStatus result = 
+    case result of
+        True -> span [] [text "OK"]
+        False -> span [style [("color", "red")]] [text "FAILED"]
 
 puzzleTitle : Int -> Int -> String -> String
 puzzleTitle year day desc = 
