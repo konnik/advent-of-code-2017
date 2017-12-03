@@ -13,6 +13,9 @@ init puzzles = ({ puzzles = puzzles
         , selected = Nothing
         , input = NotAsked
         , answer = Nothing
+        , showTests = True
+        , showPuzzleInput = False
+        , showDebug = False
         }, Cmd.none)
 
 inputUrl : Int -> Int -> String
@@ -39,6 +42,13 @@ update cmd model =
             {model | input = webdata, selected = Just puzzle} ! []
         SolvePuzzle solver input -> 
             {model | answer = Just (solver input) } ! []
+        ToggleTests -> 
+            {model | showTests = not model.showTests } ! []
+        TogglePuzzleInput -> 
+            {model | showPuzzleInput = not model.showPuzzleInput } ! []
+        ToggleDebug -> 
+            {model | showDebug = not model.showDebug } ! []
+        
 
 subscriptions : Model -> Sub Msg
 subscriptions model = 

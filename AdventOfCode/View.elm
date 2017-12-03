@@ -5,20 +5,46 @@ import AdventOfCode.Model exposing (..)
 
 import RemoteData exposing (WebData,RemoteData(..))
 
-import Html exposing (Html, table, tr, td, th, thead, tbody, h1, h2, a, p, span, pre, div, text, input, button, program)
-import Html.Attributes exposing (href, align, style)
+import Html exposing (Html, table, tr, td, th, thead, tbody, fieldset, label, h1, h2, a, p, span, pre, div, text, input, button, program)
+import Html.Attributes exposing (type_, href, align, style, checked)
 import Html.Events exposing (onClick)
 
 import Set
+
 
 view : Model -> Html Msg
 view model = 
     div [] 
     [ title "Advent of Code 2017 in Elm"
     , puzzleIndex model
+    , panelSelectors model
     , puzzleContainer model
     ]
 
+panelSelectors : Model -> Html Msg
+panelSelectors model = 
+    p [] [
+        fieldset []
+            [ label [style [("padding", "20px")]]
+                [ input [ checked model.showTests,  type_ "checkbox", onClick ToggleTests ] []
+                , text "Show tests"
+                ]
+            , label [style [("padding", "20px")]]
+                [ input [ checked model.showPuzzleInput, type_ "checkbox", onClick TogglePuzzleInput ] []
+                , text "Show puzzle input"
+                ]
+            , label [style [("padding", "20px")]]
+                [ input [ checked model.showDebug, type_ "checkbox", onClick ToggleDebug ] []
+                , text "Show debug"
+                ]
+            ]
+    ]
+
+showIf : Bool -> Html Msg -> List (Html Msg) -> List (Html Msg)
+showIf show elem list = 
+    case show of 
+        False -> list
+        True -> List.append list [elem]
 
 puzzleContainer : Model -> Html Msg
 puzzleContainer model = 
@@ -26,13 +52,12 @@ puzzleContainer model =
         Nothing -> 
             text "Select a puzzle above..."
         _ -> 
-            div [] 
-                [ solverPanel model
-                , testPanel model
-                , inputPanel model 
-                , debugPanel model
-                ]
-
+            div [] ( [] 
+                |> showIf True (solverPanel model) 
+                |> showIf model.showTests (testPanel model) 
+                |> showIf model.showPuzzleInput (inputPanel model) 
+                |> showIf model.showDebug (debugPanel model) 
+            )
 testTable : List TestResult -> Html Msg 
 testTable testResults = 
     p [] [
@@ -94,8 +119,8 @@ solverPanel model =
         Just (year,day,desc,_,part1,part2) -> 
             p [] [
                 h2 [] [text (puzzleTitle year day desc)],
-                button [onClick (SolvePuzzle part1 (input model.input))] [text "Solve part 1"],
-                button [onClick (SolvePuzzle part2 (input model.input))] [text "Solve part 2"],
+                button [onClick (SolvePuzzle part1 (puzzleInput model.input))] [text "Solve part 1"],
+                button [onClick (SolvePuzzle part2 (puzzleInput model.input))] [text "Solve part 2"],
                 case model.answer of
                     Nothing -> text ""
                     Just answer -> 
@@ -108,8 +133,8 @@ solverPanel model =
             ]
 
 
-input : WebData String -> String
-input input = 
+puzzleInput : WebData String -> String
+puzzleInput input = 
     case input of
         Success txt -> txt
         _ -> ""
@@ -117,11 +142,11 @@ input input =
 inputPanel : Model -> Html Msg
 inputPanel model = 
     p [] [
-        h2 [] [text "Input"],
+        h2 [] [text "Puzzle input"],
         case model.input of
-            NotAsked -> div [] [text "Ingen input har laddats..."]
-            Loading ->  div [] [text "Laddar..."]
-            Failure err -> div [] [text ("Fel vid laddning: " ++ (toString err))]        
+            NotAsked -> div [] [text "No input has been loaded yet."]
+            Loading ->  div [] [text "Loading.."]
+            Failure err -> div [] [text ("Could not load puzzle input: " ++ (toString err))]        
             Success input -> div [] [pre [] [text input]]
     ]
 
