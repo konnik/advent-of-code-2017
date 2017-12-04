@@ -16,6 +16,7 @@ tests = [ (part1 "1" == "0",  "Part 1 - square 1")
         , (part2 "5" == "10",  "Part 2 - larger than 5")
         ]
 
+type alias Bbox = (Int, Int, Int, Int)
 type alias Pos = (Int, Int)
 type alias Dir = (Int, Int)
 type alias Values = Dict Pos Int
@@ -23,20 +24,18 @@ type alias Step =
             { n: Int
             , pos: Pos
             , dir: Dir
-            , nextTurn: Int
-            , step1: Int 
-            , step2: Int
+            , bbox: Bbox
             , value : Int
             , values : Values
             }
 
 start : Step
-start = { n = 1, pos = (0,0), dir = (1,0), nextTurn = 2, step1 = 1, step2 = 2, value = 1, values = Dict.singleton (0,0) 1}
+start = { n = 1, pos = (0,0), dir = (1,0), bbox = (0,0,0,0), value = 1, values = Dict.singleton (0,0) 1}
 
 part1 : PuzzleSolver
 part1 input = 
     start
-        |> stepUntil (squareIs (parseInput input)) [step, turn]
+        |> stepUntil (squareIdIs (parseInput input)) [step, turn]
         |> .pos
         |> manhattanDistance
         |> toString
@@ -57,8 +56,8 @@ stepUntil done functions step =
         True -> step 
         False -> stepUntil done functions (chain functions step)
 
-squareIs : Int-> Step -> Bool
-squareIs value step = step.n == value
+squareIdIs : Int-> Step -> Bool
+squareIdIs value step = step.n == value
 
 squareValueLargerThan : Int -> Step -> Bool
 squareValueLargerThan value step = step.value > value 
@@ -72,11 +71,10 @@ step step =
 
 turn : Step -> Step
 turn step =
-    if step.n == step.nextTurn then
+    if outside step.bbox step.pos then
         { step | dir = nextDir step.dir
-               , nextTurn = step.nextTurn + step.step1
-               , step1 = step.step2
-               , step2 = step.step1 + 1 }
+               , bbox = expand step.bbox step.pos
+        }
     else
         step
 
@@ -114,3 +112,11 @@ calcValue step =
             |> addIfPresent (Dict.get (x + 1, y - 1) values)
     in
         {step | value = value, values = Dict.insert (x,y) value values}
+
+expand : Bbox -> Pos -> Bbox
+expand (xmin, xmax, ymin, ymax) (x,y) = 
+    ((min xmin x), (max xmax x), (min ymin y), (max ymax y))
+
+outside : Bbox -> Pos -> Bool
+outside (xmin, xmax, ymin, ymax) (x,y) = 
+    x<xmin || x>xmax || y<ymin || y>ymax
