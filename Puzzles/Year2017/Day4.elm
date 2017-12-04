@@ -2,6 +2,7 @@ module Puzzles.Year2017.Day4 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 
+import String exposing (lines)
 import Set exposing (Set)
 
 puzzle : Puzzle
@@ -19,24 +20,21 @@ tests = [ (part1 "aa bb cc dd ee" == "1",  "Part 1 - a")
         ]
 
 part1 : PuzzleSolver
-part1 input = 
-        String.lines input
-        |> List.map String.words
-        |> List.filter withoutDuplicates
-        |> List.length
-        |> toString
+part1 input = count (lines input) withoutDuplicates |> toString
 
 withoutDuplicates : List String -> Bool
 withoutDuplicates list =
         Set.size (Set.fromList list) == (List.length list)
 
 part2 : PuzzleSolver
-part2 input =
-        String.lines input
+part2 input = count (lines input) withoutAnagrams |> toString
+
+count : List String -> (List String -> Bool) -> Int
+count lines predicate = 
+    lines 
         |> List.map String.words
-        |> List.filter withoutAnagrams 
+        |> List.filter predicate 
         |> List.length
-        |> toString
 
 withoutAnagrams : List String -> Bool
 withoutAnagrams line = 
