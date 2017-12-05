@@ -22,10 +22,6 @@ tests = [ (part1 "aa bb cc dd ee" == "1",  "Part 1 - a")
 part1 : PuzzleSolver
 part1 input = count (lines input) withoutDuplicates |> toString
 
-withoutDuplicates : List String -> Bool
-withoutDuplicates list =
-        Set.size (Set.fromList list) == (List.length list)
-
 part2 : PuzzleSolver
 part2 input = count (lines input) withoutAnagrams |> toString
 
@@ -35,6 +31,10 @@ count lines predicate =
         |> List.map String.words
         |> List.filter predicate 
         |> List.length
+
+withoutDuplicates : List String -> Bool
+withoutDuplicates list =
+        Set.size (Set.fromList list) == (List.length list)
 
 withoutAnagrams : List String -> Bool
 withoutAnagrams line = 
