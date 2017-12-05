@@ -4,6 +4,7 @@ import AdventOfCode.Puzzle exposing (..)
 import AdventOfCode.Model exposing (..)
 
 import RemoteData exposing (WebData,RemoteData(..))
+import Http
 
 import Html exposing (Html, table, tr, td, th, thead, tbody, fieldset, label, h1, h2, a, p, span, pre, div, text, input, button, program)
 import Html.Attributes exposing (type_, href, align, style, checked)
@@ -57,7 +58,9 @@ puzzleContainer model =
             div [] ( [] 
                 |> showIf True (solverPanel model) 
                 |> showIf model.showTests (testPanel model) 
-                |> showIf model.showPuzzleInput (inputPanel model) 
+                |> showIf 
+                    (model.showPuzzleInput || (hasInputError model))
+                        (inputPanel model) 
                 |> showIf model.showDebug (debugPanel model) 
             )
 testTable : List TestResult -> Html Msg 
@@ -152,9 +155,22 @@ inputPanel model =
         case model.input of
             NotAsked -> div [] [text "No input has been loaded yet."]
             Loading ->  div [] [text "Loading.."]
-            Failure err -> div [] [text ("Could not load puzzle input: " ++ (toString err))]        
+            Failure err -> div [style [("color", "red")]] [text ("Could not load puzzle input: " ++ (errorMessage err))]        
             Success input -> div [] [pre [] [text input]]
     ]
+
+hasInputError : Model -> Bool
+hasInputError model = 
+    case model.input of
+        Failure _ -> True
+        _ -> False    
+
+errorMessage : Http.Error -> String
+errorMessage error =
+    case error of
+        Http.BadStatus r ->
+             (toString r.status.code) ++ " - " ++ (toString r.status.message)
+        _ -> toString error
 
 title : String -> Html Msg
 title titleText = 
