@@ -130,7 +130,7 @@ solverPanel model =
                 case model.time of
                     Nothing -> text ""
                     Just time -> 
-                        p [] [ text ("Tidsåtgång: " ++ (toString (inSeconds time)))]
+                        p [] [ text ("Time: " ++ (toString (inSeconds time)))]
                 ]
         Nothing -> 
             p [] [
