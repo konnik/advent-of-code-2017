@@ -1,7 +1,7 @@
 module Puzzles.Year2017.Day5 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
-import Dict exposing (Dict)
+import Array exposing (Array)
 
 puzzle : Puzzle
 puzzle = (2017,5,"A Maze of Twisty Trampolines, All Alike", tests, part1, part2)
@@ -12,7 +12,7 @@ tests = [
         , (part2 "0\n3\n0\n1\n-3" == "10",  "Test part 2")
         ]
 
-type alias Program = Dict Int Int 
+type alias Program = Array Int
 type alias OffsetStrategy = Int-> Int
 type alias State = {count: Int, pos: Int, program: Program }
 
@@ -32,7 +32,7 @@ part2 input =
 
 startState : String -> State
 startState input = 
-    { count=0, pos = 0, program = Dict.fromList (List.indexedMap (,) (List.map (Result.withDefault 0 << String.toInt) (String.lines input)))}
+    { count=0, pos = 0, program = Array.fromList (List.map (Result.withDefault 0 << String.toInt) (String.lines input))}
 
 doUntilOutside : (State -> State) -> State -> State
 doUntilOutside nextState state = 
@@ -41,17 +41,17 @@ doUntilOutside nextState state =
         False -> doUntilOutside nextState (nextState state)
 
 outside : State -> Bool
-outside state = state.pos <0 || state.pos>= (Dict.size state.program)
+outside state = state.pos <0 || state.pos>= (Array.length state.program)
 
 stepWith : OffsetStrategy -> State -> State
 stepWith offsetStrategy state = 
     let 
         pos = state.pos
-        offset = Maybe.withDefault 0 (Dict.get pos state.program)
+        offset = Maybe.withDefault 0 (Array.get pos state.program)
     in
         { state | count = state.count +1
                 , pos = pos + offset
-                , program = (Dict.insert pos (offsetStrategy offset) state.program) }
+                , program = (Array.set pos (offsetStrategy offset) state.program) }
  
 incrementOffset : Int -> Int
 incrementOffset = (+) 1
