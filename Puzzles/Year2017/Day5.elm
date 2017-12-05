@@ -2,86 +2,62 @@ module Puzzles.Year2017.Day5 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 import Dict exposing (Dict)
-import Debug
 
 puzzle : Puzzle
-puzzle = (2017,5,"Puzzle Title", tests, part1, part2)
+puzzle = (2017,5,"A Maze of Twisty Trampolines, All Alike", tests, part1, part2)
 
 tests : TestSuite
 tests = [ 
           (part1 "0\n3\n0\n1\n-3" == "5",  "Test part 1")
-        , (part1 "" == "",  "Test part 1")
-        , (part1 "" == "",  "Test part 1")
-        , (part2 "" == "",  "Test part 2")
-        , (part2 "" == "",  "Test part 2")
         , (part2 "0\n3\n0\n1\n-3" == "10",  "Test part 2")
         ]
 
+type alias Program = Dict Int Int 
+type alias OffsetStrategy = Int-> Int
+type alias State = {count: Int, pos: Int, program: Program }
+
 part1 : PuzzleSolver
 part1 input =
-    stepUntilOutside { count=0, pos = 0, program = parseInput input}
-    |> .count
-    |> toString
+    startState input
+        |> doUntilOutside (stepWith incrementOffset)
+        |> .count
+        |> toString
 
 part2 : PuzzleSolver
 part2 input =
-    stepUntilOutside2 { count=0, pos = 0, program = parseInput input}
-    |> .count
-    |> toString
+    startState input
+        |> doUntilOutside (stepWith decreaseOrIncrementOffset)
+        |> .count
+        |> toString
 
-korv input =
-    stepUntilOutside { count=0, pos = 0, program = parseInput input}
+startState : String -> State
+startState input = 
+    { count=0, pos = 0, program = Dict.fromList (List.indexedMap (,) (List.map (Result.withDefault 0 << String.toInt) (String.lines input)))}
 
-type alias Program = Dict Int Int 
-type alias State = {count: Int, pos: Int, program: Program }
+doUntilOutside : (State -> State) -> State -> State
+doUntilOutside nextState state = 
+    case outside state of
+        True -> state 
+        False -> doUntilOutside nextState (nextState state)
 
-parseInput : String -> Program
-parseInput lines = 
-    Dict.fromList (List.indexedMap (,) (List.map (Result.withDefault 0 << String.toInt) (String.lines lines)))
+outside : State -> Bool
+outside state = state.pos <0 || state.pos>= (Dict.size state.program)
 
-stepUntilOutside : State -> State
-stepUntilOutside state = 
-    let 
-        newState = step state
-    in
-    if newState.pos <0 || newState.pos>= (Dict.size newState.program) then
-        newState
-    else
-        stepUntilOutside newState 
-
-step : State -> State
-step state = 
+stepWith : OffsetStrategy -> State -> State
+stepWith offsetStrategy state = 
     let 
         pos = state.pos
         offset = Maybe.withDefault 0 (Dict.get pos state.program)
     in
         { state | count = state.count +1
                 , pos = pos + offset
-                , program = (Dict.insert pos (offset+1) state.program) }
+                , program = (Dict.insert pos (offsetStrategy offset) state.program) }
  
+incrementOffset : Int -> Int
+incrementOffset = (+) 1
 
-stepUntilOutside2 : State -> State
-stepUntilOutside2 state = 
-    let 
-        newState = step2 state
-    in
-    if newState.pos <0 || newState.pos>= (Dict.size newState.program) then
-        newState
-    else
-        stepUntilOutside2 newState 
-
-step2 : State -> State
-step2 state = 
-    let 
-        pos = state.pos
-        offset = Maybe.withDefault 0 (Dict.get pos state.program)
-    in
-        { state | count = state.count + 1
-                , pos = pos + offset
-                , program = (Dict.insert pos (calcOffset offset) state.program) }
- 
-calcOffset : Int -> Int
-calcOffset offset = 
+decreaseOrIncrementOffset : Int -> Int
+decreaseOrIncrementOffset offset = 
     if offset >= 3 then
         offset-1
     else
