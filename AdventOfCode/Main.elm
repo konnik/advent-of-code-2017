@@ -5,6 +5,8 @@ import AdventOfCode.Model exposing (..)
 
 import RemoteData exposing (WebData,RemoteData(..))
 
+import Time exposing (Time)
+import Task
 import Http
 import RemoteData exposing (WebData,RemoteData(..))
 
@@ -16,6 +18,7 @@ init puzzles = ({ puzzles = puzzles
         , showTests = True
         , showPuzzleInput = False
         , showDebug = False
+        , time = Nothing
         }, Cmd.none)
 
 inputUrl : Int -> Int -> String
@@ -41,7 +44,11 @@ update cmd model =
         OnPuzzleInputFetched puzzle webdata -> 
             {model | input = webdata, selected = Just puzzle} ! []
         SolvePuzzle solver input -> 
-            {model | answer = Just (solver input) } ! []
+            { model | time = Nothing } ! [ Task.perform (OnPuzzleStart solver input) Time.now]
+        OnPuzzleStart solver input startTime -> 
+            {model | answer = Just (solver input) } ! [Task.perform (OnPuzzleFinish startTime) Time.now]
+        OnPuzzleFinish startTime finishTime -> 
+            {model | time = Just (finishTime - startTime) } ! []
         ToggleTests -> 
             {model | showTests = not model.showTests } ! []
         TogglePuzzleInput -> 

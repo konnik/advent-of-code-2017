@@ -9,6 +9,8 @@ import Html exposing (Html, table, tr, td, th, thead, tbody, fieldset, label, h1
 import Html.Attributes exposing (type_, href, align, style, checked)
 import Html.Events exposing (onClick)
 
+import Time exposing (inSeconds)
+
 import Set
 
 
@@ -124,7 +126,11 @@ solverPanel model =
                 case model.answer of
                     Nothing -> text ""
                     Just answer -> 
-                        p [] [ text ("Answer: " ++ answer)]
+                        p [] [ text ("Answer: " ++ answer)],
+                case model.time of
+                    Nothing -> text ""
+                    Just time -> 
+                        p [] [ text ("Tidsåtgång: " ++ (toString (inSeconds time)))]
                 ]
         Nothing -> 
             p [] [
