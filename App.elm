@@ -1,8 +1,10 @@
 module App exposing (main)
 
-import Html
+import Navigation exposing (program)
+
 import AdventOfCode.Main exposing (update, init, subscriptions)
 import AdventOfCode.View exposing (view)
+import AdventOfCode.Router exposing (router)
 import AdventOfCode.Model exposing (Msg, Model)
 import AdventOfCode.Puzzle exposing (Puzzle)
 
@@ -31,7 +33,7 @@ allPuzzles = [ Puzzles.Year2015.Day1.puzzle
 
 main : Program Never Model Msg
 main =
-    Html.program
+    program router
         { init = init allPuzzles
         , view = view
         , update = update

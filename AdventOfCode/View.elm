@@ -197,7 +197,10 @@ puzzleLink allPuzzles year day =
         case puzzleForYearAndDay allPuzzles year day of
             Nothing -> span [notClickable] [text (toString day)]
             Just ((year, day, _ , _, _, _) as p) -> 
-                a [href ("#" ++ hash), onClick (PuzzleSelected p), clickable ] [text (toString day)]
+                a [ href ("#" ++ hash)
+                  -- not needed since we are loading on navigation events: , onClick (PuzzleSelected p)
+                  , clickable ] 
+                  [text (toString day)]
 
 uniqueYears : List Puzzle -> List Int
 uniqueYears puzzles = 

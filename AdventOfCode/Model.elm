@@ -3,6 +3,7 @@ module AdventOfCode.Model exposing (..)
 import AdventOfCode.Puzzle exposing (..)
 import RemoteData exposing (WebData,RemoteData(..))
 import Time exposing (Time)
+import Navigation exposing (Location)
 
 type alias Model = { puzzles : List Puzzle
                     , selected : Maybe Puzzle
@@ -14,7 +15,8 @@ type alias Model = { puzzles : List Puzzle
                     , time : Maybe Time
                     }
 type Msg 
-    = NoOp 
+    = NoOp
+    | OnNavigation Location
     | PuzzleSelected Puzzle
     | OnPuzzleInputFetched Puzzle (WebData PuzzleInput)
     | SolvePuzzle PuzzleSolver PuzzleInput

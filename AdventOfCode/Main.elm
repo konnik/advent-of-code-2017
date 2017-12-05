@@ -9,9 +9,12 @@ import Time exposing (Time)
 import Task
 import Http
 import RemoteData exposing (WebData,RemoteData(..))
+import Navigation exposing (Location)
 
-init : List Puzzle -> ( Model, Cmd Msg )
-init puzzles = ({ puzzles = puzzles
+init : List Puzzle -> Location -> ( Model, Cmd Msg )
+init puzzles location = 
+    (
+        { puzzles = puzzles
         , selected = Nothing
         , input = NotAsked
         , answer = Nothing
@@ -19,11 +22,36 @@ init puzzles = ({ puzzles = puzzles
         , showPuzzleInput = False
         , showDebug = False
         , time = Nothing
-        }, Cmd.none)
+        }
+        , fetchPuzzleByLocation puzzles location
+    )
 
 inputUrl : Int -> Int -> String
 inputUrl year day = 
     "inputs/" ++ (toString year) ++ "/day-" ++ (toString day) ++ ".txt"
+
+puzzleFor : Int -> Int -> Puzzle -> Bool
+puzzleFor year day (year2, day2, _, _, _, _) = year == year2 && day == day2
+
+fetchPuzzleByLocation : List Puzzle -> Location -> Cmd Msg
+fetchPuzzleByLocation puzzles location = 
+    case findPuzzleByHash puzzles location.hash of
+        Nothing -> Cmd.none
+        Just puzzle -> fetchPuzzleInput puzzle
+
+findPuzzleByHash : List Puzzle -> String -> Maybe Puzzle
+findPuzzleByHash puzzles hash =
+    case String.split "-" (String.dropLeft 1 hash) of
+        [year,"day",day] ->
+            let
+                year2 = Result.withDefault 0 (String.toInt year)
+                day2 = Result.withDefault 0 (String.toInt day)
+                matchingPuzzles = List.filter (puzzleFor year2 day2) puzzles
+            in
+                case matchingPuzzles of 
+                    [puzzle] -> Just puzzle
+                    _ -> Nothing
+        _ -> Nothing
 
 fetchPuzzleInput : Puzzle -> Cmd Msg
 fetchPuzzleInput puzzle = 
@@ -39,6 +67,8 @@ update cmd model =
     case cmd of
         NoOp -> 
             model ! []
+        OnNavigation location ->
+            model ! [fetchPuzzleByLocation model.puzzles location]
         PuzzleSelected puzzle -> 
             {model | answer = Nothing, selected = Nothing, input = NotAsked } ! [fetchPuzzleInput puzzle]
         OnPuzzleInputFetched puzzle webdata -> 
