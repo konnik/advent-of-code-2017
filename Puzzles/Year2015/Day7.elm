@@ -4,7 +4,6 @@ import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult
 
 import Dict exposing (Dict)
 import Bitwise
-import Debug 
 
 -- public interface
 
@@ -95,7 +94,7 @@ cacheAndReturnValue c id v =
 
 value : Circuit -> Source -> (Int, Circuit)
 value c source =
-    case (Debug.log "value: " source) of
+    case source of
         Value n -> 
             (n, c)
         Wire id ->
