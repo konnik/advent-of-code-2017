@@ -3,6 +3,8 @@ module Puzzles.Year2017.Day7 exposing (..)
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 import Dict exposing (Dict)
 import Set
+import Tuple exposing (first, second)
+import List.Extra as LE
 
 
 
@@ -11,17 +13,20 @@ puzzle = ( 2017, 7, "Recursive Circus", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [ ( parseLine "pbga (66)" == ("pbga", 66, []),  "parseLine - no children" )
-    , ( parseLine "fwft (72) -> ktlj, cntj, xhth" == ("fwft", 72, ["ktlj", "cntj", "xhth"]),  "parseLine - children" )
-    , ( valueOf testDict "ugml" == 251,  "ugml - weight" )
-    , ( valueOf testDict "padx" == 243,  "padx - weight" )
-    , ( valueOf testDict "fwft" == 243,  "fwft - weight" )
-    , ( balanced testDict "ugml" == True,  "ugml - balanced" )
-    , ( balanced testDict "padx" == True,  "padx - balanced" )
-    , ( balanced testDict "fwft" == True,  "fwft - balanced" )
-    , ( balanced testDict "ktlj" == True,  "ktlj - balanced" )
+    [ (part1 testInput == "tknk", "part 1")
+    , ( parseLine "pbga (66)" == Line "pbga"  66  [],  "parseLine - no children" )
+    , ( parseLine "fwft (72) -> ktlj, cntj, xhth" == Line "fwft" 72 ["ktlj", "cntj", "xhth"],  "parseLine - children" )
+    , ( valueOf testData "ugml" == 251,  "ugml - weight" )
+    , ( valueOf testData "padx" == 243,  "padx - weight" )
+    , ( valueOf testData "fwft" == 243,  "fwft - weight" )
+{-    , ( balanced testData "ugml" == True,  "ugml - balanced" )
+    , ( balanced testData "padx" == True,  "padx - balanced" )
+    , ( balanced testData "fwft" == True,  "fwft - balanced" )
+    , ( balanced testData "ktlj" == True,  "ktlj - balanced" )
+ -}
     ]
 
+testInput : String
 testInput = """pbga (66)
 xhth (57)
 ebii (61)
@@ -36,84 +41,140 @@ ugml (68) -> gyxo, ebii, jptl
 gyxo (61)
 cntj (57)
 """
+testData : Input
+testData = 
+        parseInput testInput
 
-testDict = 
-        String.lines testInput
-            |> List.map parseLine
-            |> toDict
+type alias Input = Dict String Line
+type alias Line = {name: String, weight: Int, children: List String}
 
-type alias Tower = (String, Int, List String)
+type Tree = Tree String Int (List Tree)
 
 part1 : PuzzleSolver
 part1 input = 
-    "not implemented"
+    input
+    |> parseInput
+    |> findRoot
 
 part2 : PuzzleSolver
 part2 input =
     let 
-        dict = 
-        String.lines input
-            |> List.map parseLine
-            |> toDict
+        data = parseInput input
+        root = findRoot data
     in
-       (toString (find dict "ykpsek" )) ++  
-       (toString (List.map (valueOf dict) (children dict "uduyfo"))) ++ (toString (towerByName dict "cumah")) 
+        buildTree data root
+        |> find
+        |> wrongStackWeight
+        |> toString    
 
-towerByName :  Dict String Tower -> String -> Maybe Tower
+-- part 1
+
+findRoot : Input -> String
+findRoot input = 
+    let
+        allChildren = List.concatMap .children (Dict.values input)
+        allNames = Dict.keys input
+        roots = List.filter (notInList allChildren) allNames
+    in
+        case roots of 
+            root::[] -> root
+            _ -> "No root found: " ++ (toString roots)
+
+notInList : List String -> String -> Bool
+notInList list name = not (List.member name list)
+
+-- part 2
+
+buildTree : Input -> String -> Tree
+buildTree input name = 
+    case Dict.get name input of
+        Nothing -> Tree ("Not found" ++ name) 0 []
+        Just line -> Tree line.name line.weight (List.map (buildTree input) line.children)
+
+towerByName :  Dict String Line -> String -> Maybe Line
 towerByName dict name = Dict.get name dict
 
-unbalancedWithBalancedChildren : Dict String Tower -> String -> Bool
-unbalancedWithBalancedChildren dict name = 
-    (not (balanced dict name)) && (List.all (balanced dict) (children dict name))
+stackWeight : Tree -> Int
+stackWeight (Tree _ weight children) = 
+    weight + List.sum (List.map stackWeight children)
 
-find : Dict String Tower -> String -> List String
-find dict name = 
-    if unbalancedWithBalancedChildren dict name then
-        [name]
+isBalanced : Tree -> Bool
+isBalanced (Tree _ weight children) = 
+    Set.size (Set.fromList (List.map stackWeight children)) < 2
+
+unbalancedWithBalancedChildren : Tree -> Bool
+unbalancedWithBalancedChildren tree =
+    (not (isBalanced tree)) && (List.all isBalanced (children tree))
+
+
+find : Tree -> List Tree
+find tree = 
+    if unbalancedWithBalancedChildren tree then
+        [tree]
     else
-        List.concatMap (find dict) (children dict name)
+        List.concatMap find (children tree)
 
-children : Dict String Tower -> String -> List String
-children dict name = 
-    case Dict.get name dict of
-        Nothing -> []
-        Just (_,_,children) -> children
+hasStackWeight : Tree -> Int -> Bool
+hasStackWeight ((Tree _ _ children) as tree) weight = stackWeight tree == weight
 
-balanced : Dict String Tower -> String -> Bool
-balanced dict name = 
-    Set.size (Set.fromList (List.map (valueOf dict) (children dict name))) < 2
+wrongStackWeight : Tree -> Int
+wrongStackWeight (Tree name _ children) = 
+    let 
+        a = Debug.log "kljlj" name
+        weights = List.map stackWeight children
+    in
+        List.sort weights
+        |> LE.group 
+        |> List.map (\ x -> (head x , List.length x))
+        |> List.sortBy second 
+        |> List.map first
+        |> head
+     
+children : Tree -> List Tree
+children (Tree _ _ children) = children 
 
-valueOf : Dict String Tower -> String -> Int
+
+valueOf : Input -> String -> Int
 valueOf dict name = 
     case Dict.get name dict of
         Nothing -> 0
-        Just (_,value,children) -> value + (List.sum (List.map (valueOf dict) children))
+        Just line -> line.weight + (List.sum (List.map (valueOf dict) line.children))
 
-valueOfChildren : Dict String Tower -> String ->  Int
+valueOfChildren : Input -> String ->  Int
 valueOfChildren dict name  = 
     case Dict.get name dict of
         Nothing -> 0
-        Just (_,_,children) -> List.sum (List.map (valueOf dict) children)
+        Just line -> List.sum (List.map (valueOf dict) line.children)
 
-firstAsKey : (a,b,c) -> (a, (a,b,c))
-firstAsKey (a,b,c) = (a, (a,b,c))
 
-toDict : List Tower -> Dict String Tower
-toDict towers = 
-    Dict.fromList (List.map firstAsKey towers)
+parseInput : String -> Input
+parseInput input = 
+    String.lines input 
+        |> List.map parseLine 
+        |> List.map nameAsKey 
+        |> Dict.fromList
 
-parseLine : String -> Tower 
+nameAsKey : Line -> (String, Line)
+nameAsKey ({name} as line) = (name, line)
+
+removeSeparators : String -> String
+removeSeparators = String.filter (\ c -> c/= ',' && c /= '(' && c/= ')')
+
+parseLine : String -> Line 
 parseLine line =
-    let 
-        filteredLine 
-            = String.filter (\ c -> c/= ',' && c /= '(' && c/= ')') line
-    in
-        case String.words filteredLine of
-            [name, weight] -> (name, (toInt weight), [])
-            name::weight::_::children -> (name, (toInt weight), children)
-            _ -> ("ParseError", -1, [])
+    case String.words (removeSeparators line) of
+        name :: weight :: [] -> 
+            { name = name, weight = (toInt weight), children = [] }
+        name :: weight :: arrow :: children ->
+            { name = name, weight = (toInt weight), children = children }
+        _ -> 
+            { name = "parse error", weight = 0, children = [] }
 
-        --  utillity functions 
+--  utillity functions 
+
+
+head : List Int -> Int
+head = Maybe.withDefault 0 << List.head
 
 toInt : String -> Int
 toInt = Result.withDefault 0 << String.toInt
