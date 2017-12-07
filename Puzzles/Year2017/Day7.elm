@@ -7,23 +7,15 @@ import Tuple exposing (first, second)
 import List.Extra as LE
 
 
-
 puzzle : Puzzle
 puzzle = ( 2017, 7, "Recursive Circus", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
     [ (part1 testInput == "tknk", "part 1")
+    , (part2 testInput == "60", "part 2")
     , ( parseLine "pbga (66)" == Line "pbga"  66  [],  "parseLine - no children" )
     , ( parseLine "fwft (72) -> ktlj, cntj, xhth" == Line "fwft" 72 ["ktlj", "cntj", "xhth"],  "parseLine - children" )
-    , ( valueOf testData "ugml" == 251,  "ugml - weight" )
-    , ( valueOf testData "padx" == 243,  "padx - weight" )
-    , ( valueOf testData "fwft" == 243,  "fwft - weight" )
-{-    , ( balanced testData "ugml" == True,  "ugml - balanced" )
-    , ( balanced testData "padx" == True,  "padx - balanced" )
-    , ( balanced testData "fwft" == True,  "fwft - balanced" )
-    , ( balanced testData "ktlj" == True,  "ktlj - balanced" )
- -}
     ]
 
 testInput : String
@@ -39,8 +31,8 @@ tknk (41) -> ugml, padx, fwft
 jptl (61)
 ugml (68) -> gyxo, ebii, jptl
 gyxo (61)
-cntj (57)
-"""
+cntj (57)"""
+
 testData : Input
 testData = 
         parseInput testInput
@@ -64,10 +56,10 @@ part2 input =
     in
         buildTree data root
         |> find
-        |> wrongStackWeight
+        |> List.map adjustWeight
+        |> head
         |> toString    
 
--- part 1
 
 findRoot : Input -> String
 findRoot input = 
@@ -78,7 +70,8 @@ findRoot input =
     in
         case roots of 
             root::[] -> root
-            _ -> "No root found: " ++ (toString roots)
+            [] -> "No root found: " ++ (toString roots)
+            _ -> "To many roots found: " ++ (toString roots)
 
 notInList : List String -> String -> Bool
 notInList list name = not (List.member name list)
@@ -88,7 +81,7 @@ notInList list name = not (List.member name list)
 buildTree : Input -> String -> Tree
 buildTree input name = 
     case Dict.get name input of
-        Nothing -> Tree ("Not found" ++ name) 0 []
+        Nothing -> Tree ("Not found: " ++ name) 0 []
         Just line -> Tree line.name line.weight (List.map (buildTree input) line.children)
 
 towerByName :  Dict String Line -> String -> Maybe Line
@@ -114,38 +107,35 @@ find tree =
     else
         List.concatMap find (children tree)
 
-hasStackWeight : Tree -> Int -> Bool
-hasStackWeight ((Tree _ _ children) as tree) weight = stackWeight tree == weight
 
-wrongStackWeight : Tree -> Int
-wrongStackWeight (Tree name _ children) = 
+adjustWeight : Tree -> Int
+adjustWeight  tree = 
     let 
-        a = Debug.log "kljlj" name
-        weights = List.map stackWeight children
+        (Tree _ _ children) = tree
+        (wrongWeight, correctWeight) = wrongStackWeight (List.map stackWeight children )
+        wrongNodes = List.filter (hasStackWeight wrongWeight) children 
     in
-        List.sort weights
+        List.sum (List.map nodeWeight wrongNodes)
+         |> (+) (correctWeight-wrongWeight)
+
+nodeWeight : Tree -> Int
+nodeWeight (Tree _ weight _ ) = weight
+
+hasStackWeight : Int  -> Tree -> Bool
+hasStackWeight weight ((Tree _ _ children) as tree) = stackWeight tree == weight
+
+wrongStackWeight : List Int -> (Int, Int)
+wrongStackWeight weights = 
+    List.sort weights
         |> LE.group 
         |> List.map (\ x -> (head x , List.length x))
         |> List.sortBy second 
         |> List.map first
-        |> head
+        |> listToTuple
+
      
 children : Tree -> List Tree
 children (Tree _ _ children) = children 
-
-
-valueOf : Input -> String -> Int
-valueOf dict name = 
-    case Dict.get name dict of
-        Nothing -> 0
-        Just line -> line.weight + (List.sum (List.map (valueOf dict) line.children))
-
-valueOfChildren : Input -> String ->  Int
-valueOfChildren dict name  = 
-    case Dict.get name dict of
-        Nothing -> 0
-        Just line -> List.sum (List.map (valueOf dict) line.children)
-
 
 parseInput : String -> Input
 parseInput input = 
@@ -168,10 +158,15 @@ parseLine line =
         name :: weight :: arrow :: children ->
             { name = name, weight = (toInt weight), children = children }
         _ -> 
-            { name = "parse error", weight = 0, children = [] }
+            { name = "Parse error: '" ++ line ++ "'", weight = 0, children = [] }
 
 --  utillity functions 
 
+listToTuple : List Int -> (Int, Int)
+listToTuple list = 
+    case list of 
+        [a,b] -> (a,b)
+        _ -> (0,0)
 
 head : List Int -> Int
 head = Maybe.withDefault 0 << List.head
