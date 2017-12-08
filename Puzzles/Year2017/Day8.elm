@@ -19,10 +19,11 @@ a inc 1 if b < 5
 c dec -10 if a >= 1
 c inc -20 if c == 10"""
 
+type alias ModifyOp = Int -> Int -> Int
+type alias CompareOp = Int -> Int -> Bool
 type alias Register = String
-type alias Op = String
 type alias Value = Int
-type alias Line = (Register, Op, Value, Register, Op, Value )
+type alias Line = (Register, ModifyOp, Value, Register, CompareOp, Value )
 type alias Registers = Dict String Int
 
 part1 : PuzzleSolver
@@ -52,17 +53,17 @@ registers (_, reg) = reg
 execLine : Line -> (Int, Registers) -> (Int, Registers)
 execLine line (maxReg, registers) = 
     let
-        (reg, op, value, compReg, compOp, compVal) = line
+        (reg, modifyOp, value, compReg, compOp, compVal) = line
     in
-        if (compFunc compOp) (getReg compReg registers) compVal then
+        if compOp (getReg compReg registers) compVal then
             let
-                updatedRegisters = setReg reg ((modifyOp op) (getReg reg registers) value) registers
+                updatedRegisters = setReg reg (modifyOp (getReg reg registers) value) registers
             in
                 (max maxReg (getReg reg updatedRegisters), updatedRegisters)
         else
             (maxReg, registers)
 
-modifyOp : String -> (Int -> Int -> Int)
+modifyOp : String -> ModifyOp
 modifyOp op = 
     case op of
         "inc" -> (+)
@@ -70,8 +71,8 @@ modifyOp op =
         _ -> Debug.crash ("Illegal op: " ++ op)
 
 
-compFunc : String -> (Int -> Int -> Bool)
-compFunc op = 
+compareOp : String -> CompareOp
+compareOp op = 
     case op of
         ">" -> (>)
         "<" -> (<)
@@ -91,7 +92,7 @@ parseLine : String -> Line
 parseLine line =
     -- Example: njb dec 612 if s > -8
     case String.split " " line of
-        [a,b,c,_,e,f,g] -> (a, b, toInt c, e, f, toInt g)
+        [a,b,c,_,e,f,g] -> (a, modifyOp b, toInt c, e, compareOp f, toInt g)
         _ -> Debug.crash ("Parse error: " ++ line)
 
 toInt : String -> Int
