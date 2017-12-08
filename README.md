@@ -16,7 +16,7 @@ This is my first time trying out Elm so please bear with me...  :-)
     elm-package install
     elm-reactor
    ```
-5. Point your browser to http://localhost:8000
+5. Point your browser to http://localhost:8000/App.elm
 6. Enjoy! :)
 
 
