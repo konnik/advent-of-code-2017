@@ -8,7 +8,7 @@ This is my first time trying out Elm so please bear with me...  :-)
 
 1. [Install elm](https://guide.elm-lang.org/install.html)
 2. Clone source 
-3. Put your AoE inputs in inputs/&lt;year&gt;/
+3. Put your AoE input for a particular problem in inputs/&lt;year&gt;/day-&lt;day&gt;.txt
 4. From project folder run:
    ```
     elm-package install
