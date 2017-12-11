@@ -18,12 +18,12 @@ tests =
     ]
 
 type alias Pos = (Int, Int, Int)
-type alias State = { pos: Pos, dists: List Int}
+type alias State = { pos: Pos, maxDistance: Int }
 
 part1 : PuzzleSolver
 part1 input = 
     parseInput input 
-        |> List.foldl step {pos = (0,0,0), dists = []} 
+        |> List.foldl step {pos = (0,0,0), maxDistance = 0} 
         |> .pos
         |> dist
         |> toString
@@ -31,10 +31,8 @@ part1 input =
 part2 : PuzzleSolver
 part2 input = 
     parseInput input 
-        |> List.foldl step {pos = (0,0,0), dists = []} 
-        |> .dists
-        |> List.maximum
-        |> Maybe.withDefault 0 
+        |> List.foldl step {pos = (0,0,0), maxDistance = 0} 
+        |> .maxDistance
         |> toString
 
 dist : Pos -> Int
@@ -59,9 +57,9 @@ step dir state=
                 "se" -> add state.pos (  1, -1,  0)
                 "nw" -> add state.pos ( -1,  1,  0)
                 _ -> state.pos
-        newDists = (dist newPos) :: state.dists
+        newMaxDistance = max (dist newPos) state.maxDistance
     in
-        { pos = newPos, dists = newDists }
+        { pos = newPos, maxDistance = newMaxDistance }
 
 
 parseInput : String -> List String
