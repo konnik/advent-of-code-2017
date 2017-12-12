@@ -7,7 +7,7 @@ import RemoteData exposing (WebData,RemoteData(..))
 import Http
 
 import Html exposing (Html, textarea, table, tr, td, th, thead, tbody, fieldset, label, h1, h2, a, p, span, pre, div, text, input, button, program)
-import Html.Attributes exposing (type_, href, align, style, checked)
+import Html.Attributes exposing (placeholder, type_, href, align, style, checked)
 import Html.Events exposing (onClick, onInput)
 
 import Time exposing (inSeconds)
@@ -152,7 +152,7 @@ customInputArea model =
                     ]
             ]
         ]
-        |> showIf model.useCustomInput (p [style [("padding", "5px")]] [ textarea [onInput OnCustomInput,  style [("width", "800px"),("height", "300px")]] [ text model.customInput] ])
+        |> showIf model.useCustomInput (p [style [("padding", "5px")]] [ textarea [onInput OnCustomInput, placeholder "Paste your input here...",  style [("width", "600px"),("height", "200px")]] [ text model.customInput] ])
     )
 
 puzzleInput : Model -> String
