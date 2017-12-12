@@ -17,7 +17,9 @@ This is my first time trying out Elm so please bear with me...  :-)
 5. Point your browser to http://localhost:8000/App.elm
 6. Enjoy! :)
 
-
+Note: My personal puzzle inputs are included and used by default. 
+If you want to use your own inputs, just check "Use custom input" 
+and provide your data in the textarea.
 
 
 

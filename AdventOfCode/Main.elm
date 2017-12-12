@@ -21,6 +21,8 @@ init puzzles location =
         , showTests = True
         , showPuzzleInput = False
         , showDebug = False
+        , useCustomInput = False
+        , customInput = ""
         , time = Nothing
         }
         , fetchPuzzleByLocation puzzles location
@@ -85,6 +87,10 @@ update cmd model =
             {model | showPuzzleInput = not model.showPuzzleInput } ! []
         ToggleDebug -> 
             {model | showDebug = not model.showDebug } ! []
+        ToggleCustomInput -> 
+            {model | useCustomInput = not model.useCustomInput } ! []
+        OnCustomInput text -> 
+            {model | customInput = text } ! []
         
 
 subscriptions : Model -> Sub Msg

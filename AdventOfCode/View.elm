@@ -6,9 +6,9 @@ import AdventOfCode.Model exposing (..)
 import RemoteData exposing (WebData,RemoteData(..))
 import Http
 
-import Html exposing (Html, table, tr, td, th, thead, tbody, fieldset, label, h1, h2, a, p, span, pre, div, text, input, button, program)
+import Html exposing (Html, textarea, table, tr, td, th, thead, tbody, fieldset, label, h1, h2, a, p, span, pre, div, text, input, button, program)
 import Html.Attributes exposing (type_, href, align, style, checked)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 
 import Time exposing (inSeconds)
 
@@ -124,8 +124,8 @@ solverPanel model =
         Just (year,day,desc,_,part1,part2) -> 
             p [] [
                 h2 [] [text (puzzleTitle year day desc)],
-                button [onClick (SolvePuzzle part1 (puzzleInput model.input))] [text "Solve part 1"],
-                button [onClick (SolvePuzzle part2 (puzzleInput model.input))] [text "Solve part 2"],
+                button [onClick (SolvePuzzle part1 (puzzleInput model))] [text "Solve part 1"],
+                button [onClick (SolvePuzzle part2 (puzzleInput model))] [text "Solve part 2"],
                 case model.answer of
                     Nothing -> text ""
                     Just answer -> 
@@ -134,6 +134,7 @@ solverPanel model =
                     Nothing -> text ""
                     Just time -> 
                         p [] [ text ("Time: " ++ (toString (inSeconds time)))]
+                ,customInputArea model
                 ]
         Nothing -> 
             p [] [
@@ -141,12 +142,27 @@ solverPanel model =
                 text "Select a puzzle from menu."
             ]
 
+customInputArea : Model -> Html Msg
+customInputArea model = 
+    div [] (
+         [ p [] [
+                label []
+                    [ input [ checked model.useCustomInput,  type_ "checkbox", onClick ToggleCustomInput ] []
+                    , text "Use custom input"       
+                    ]
+            ]
+        ]
+        |> showIf model.useCustomInput (p [style [("padding", "5px")]] [ textarea [onInput OnCustomInput,  style [("width", "800px"),("height", "300px")]] [ text model.customInput] ])
+    )
 
-puzzleInput : WebData String -> String
-puzzleInput input = 
-    case input of
-        Success txt -> txt
-        _ -> ""
+puzzleInput : Model -> String
+puzzleInput model =
+    if model.useCustomInput then
+        model.customInput
+    else
+        case model.input of
+            Success txt -> txt
+            _ -> ""
 
 inputPanel : Model -> Html Msg
 inputPanel model = 

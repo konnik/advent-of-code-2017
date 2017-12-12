@@ -12,6 +12,8 @@ type alias Model = { puzzles : List Puzzle
                     , showTests : Bool
                     , showPuzzleInput: Bool
                     , showDebug: Bool
+                    , useCustomInput: Bool
+                    , customInput: String
                     , time : Maybe Time
                     }
 type Msg 
@@ -25,3 +27,5 @@ type Msg
     | ToggleTests
     | TogglePuzzleInput
     | ToggleDebug
+    | ToggleCustomInput
+    | OnCustomInput String
