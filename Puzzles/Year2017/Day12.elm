@@ -8,7 +8,7 @@ import String exposing (words, lines)
 import Set exposing (Set)
 
 puzzle : Puzzle
-puzzle = ( 2017, 12, "XXXX", tests, part1, part2 )
+puzzle = ( 2017, 12, "Digital Plumber", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
