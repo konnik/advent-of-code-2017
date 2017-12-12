@@ -13,13 +13,15 @@ puzzle = ( 2017, 12, "XXXX", tests, part1, part2 )
 tests : TestSuite
 tests = 
     [ ( part1 "test-input" == "expected-output",  "Test part 1" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    , ( part2 "0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n\6 <-> 4, 5" == "2",  "Test part 2" )
     ]
 
 
 type alias Id = Int
 type alias Group = Set Int
 type alias Programs = Dict Id (List Id) 
+
+
 
 part1 : PuzzleSolver
 part1 input = 
@@ -30,8 +32,12 @@ part1 input =
 
 part2 : PuzzleSolver
 part2 input = 
-    parseInput input
-        |> allIds 
+    let 
+        p = parseInput input
+        ids = allIds p
+        groups = findGroups p (Set.toList ids) []
+    in 
+        List.length groups 
         |> toString
 
 
@@ -41,7 +47,7 @@ findGroups progs ids groups =
         [] -> groups
         id::rest -> 
             if inGroup id groups then
-                groups
+                findGroups progs rest groups
             else
                 findGroups progs rest ((findProgs progs id Set.empty)::groups)
 
