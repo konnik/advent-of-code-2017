@@ -3,7 +3,7 @@ module Puzzles.Year2017.Day12 exposing (..)
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 
 import Dict exposing (Dict)
-import List exposing (take,drop, filter, map)
+import List exposing (take, drop, filter, map)
 import String exposing (words, lines)
 import Set exposing (Set)
 
@@ -21,8 +21,6 @@ type alias Id = Int
 type alias Group = Set Int
 type alias Programs = Dict Id (List Id) 
 
-
-
 part1 : PuzzleSolver
 part1 input = 
     findProgs (parseInput input) 0 Set.empty
@@ -35,21 +33,26 @@ part2 input =
     let 
         p = parseInput input
         ids = allIds p
-        groups = findGroups p (Set.toList ids) []
+        groups = findGroups p (Set.toList ids) Set.empty []
     in 
         List.length groups 
         |> toString
 
 
-findGroups : Programs -> List Id -> List Group -> List Group
-findGroups progs ids groups = 
+findGroups : Programs -> List Id -> Set Id -> List Group -> List Group
+findGroups progs ids usedIds groups = 
     case ids of
         [] -> groups
         id::rest -> 
-            if inGroup id groups then
-                findGroups progs rest groups
+            if Set.member id usedIds then
+                findGroups progs rest usedIds groups
             else
-                findGroups progs rest ((findProgs progs id Set.empty)::groups)
+                let
+                    group = (findProgs progs id Set.empty)
+                    newGroups = group::groups
+                    newUsedIds = Set.union usedIds group 
+                in
+                    findGroups progs rest newUsedIds newGroups
 
 inGroup : Int -> List Group -> Bool
 inGroup id groups = 
