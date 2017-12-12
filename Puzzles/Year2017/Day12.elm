@@ -12,8 +12,8 @@ puzzle = ( 2017, 12, "XXXX", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [ ( part1 "test-input" == "expected-output",  "Test part 1" )
-    , ( part2 "0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n\6 <-> 4, 5" == "2",  "Test part 2" )
+    [ ( part1 "0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n6 <-> 4, 5" == "6",  "Test part 1" )
+    , ( part2 "0 <-> 2\n1 <-> 1\n2 <-> 0, 3, 4\n3 <-> 2, 4\n4 <-> 2, 3, 6\n5 <-> 6\n6 <-> 4, 5" == "2",  "Test part 2" )
     ]
 
 
