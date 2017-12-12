@@ -18,6 +18,7 @@ tests =
 
 
 type alias Id = Int
+type alias Group = Set Int
 type alias Programs = Dict Id (List Id) 
 
 part1 : PuzzleSolver
@@ -32,6 +33,24 @@ part2 input =
     parseInput input
         |> allIds 
         |> toString
+
+
+findGroups : Programs -> List Id -> List Group -> List Group
+findGroups progs ids groups = 
+    case ids of
+        [] -> groups
+        id::rest -> 
+            if inGroup id groups then
+                groups
+            else
+                findGroups progs rest ((findProgs progs id Set.empty)::groups)
+
+inGroup : Int -> List Group -> Bool
+inGroup id groups = 
+    let 
+        allIds = List.foldl Set.union Set.empty groups
+    in
+        Set.member id allIds
 
 
 allIds : Programs -> Set Id
