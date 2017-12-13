@@ -20,7 +20,7 @@ tests =
 
 type alias Scanner = { depth: Int, range: Int, position: Int,  direction: Int}
 type alias Firewall = Dict Int Scanner
-type alias State = { position: Int, firewall: Firewall, severity: Int}
+type alias State = { caught: Bool, position: Int, firewall: Firewall, severity: Int}
 
 
 
@@ -28,15 +28,39 @@ part1 : PuzzleSolver
 part1 input = 
     parseInput input
         |> initialState
-        |> stepUntil (pos 200)
+        |> stepUntil (pos 100)
         |> .severity
         |> toString
 
     
 part2 : PuzzleSolver
 part2 input = 
-    "not implemented"
+    parseInput input
+        |> initialState
+        |> findNotCaughtDelay 0
+        |> toString
 
+
+findNotCaughtDelay : Int -> State -> Int
+findNotCaughtDelay n state = 
+    if not (caughtWithDelay n state) then
+        n
+    else
+        findNotCaughtDelay (n+1) state
+
+caughtWithDelay : Int -> State -> Bool
+caughtWithDelay n state = 
+    state
+        |> delay n
+        |> stepUntil isCaught
+        |> .caught
+
+delay : Int -> State -> State
+delay n state = 
+    if n == 0 then
+        state
+    else
+        delay (n-1) (moveScanners state)
 
 stepUntil : (State -> Bool) -> State -> State
 stepUntil done state = 
@@ -53,6 +77,9 @@ stepUntil done state =
 
 pos : Int ->  State -> Bool
 pos pos state = state.position >= pos
+
+isCaught :  State -> Bool
+isCaught state = state.caught || state.position >=100
 
 moveScanners : State -> State
 moveScanners state =
@@ -82,7 +109,7 @@ move state =
 checkCaught : State -> State
 checkCaught state = 
     if caught state then
-        { state | severity =state.severity + (severity state)}
+        { state | caught = True, severity = state.severity + (severity state)}
     else
         state
 
@@ -105,7 +132,7 @@ scannerAt firewall pos = Dict.get pos firewall
 
 initialState : Firewall -> State
 initialState firewall = 
-    { position = -1, severity = 0, firewall = firewall}
+    { caught = False, position = -1, severity = 0, firewall = firewall}
 
 parseInput : String -> Firewall
 parseInput input = 
