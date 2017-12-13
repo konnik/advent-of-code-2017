@@ -5,7 +5,6 @@ import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult
 import Dict exposing (Dict)
 import List exposing (take, drop, filter, map)
 import String exposing (words, lines)
-import Set exposing (Set)
 
 puzzle : Puzzle
 puzzle = ( 2017, 13, "Packet Scanners", tests, part1, part2 )
@@ -14,15 +13,14 @@ testInput = "0: 3\n1: 2\n4: 4\n6: 4"
 
 tests : TestSuite
 tests = 
-    [ ( part1 testInput == "24",  "Test part 1" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [
+        ( part1 testInput == "24",  "Test part 1" )
+  , ( part2 testInput == "10",  "Test part 2" )
     ]
 
 type alias Scanner = { depth: Int, range: Int, position: Int,  direction: Int}
 type alias Firewall = Dict Int Scanner
 type alias State = { caught: Bool, position: Int, firewall: Firewall, severity: Int}
-
-
 
 part1 : PuzzleSolver
 part1 input = 
@@ -31,36 +29,39 @@ part1 input =
         |> stepUntil (pos 100)
         |> .severity
         |> toString
-
     
 part2 : PuzzleSolver
 part2 input = 
     parseInput input
-        |> initialState
-        |> findNotCaughtDelay 0
+        |> Dict.values
+        |> List.map toSimpleScanner
+        |> findDelay 0 
         |> toString
 
+scanners : String -> List (Int, Int)
+scanners input = 
+    parseInput input
+        |> Dict.values
+        |> List.map toSimpleScanner
 
-findNotCaughtDelay : Int -> State -> Int
-findNotCaughtDelay n state = 
-    if not (caughtWithDelay n state) then
-        n
+findDelay : Int -> List (Int, Int) -> Int
+findDelay delay scanners = 
+    if canPass delay scanners then
+        delay
     else
-        findNotCaughtDelay (n+1) state
+        findDelay (delay+1) scanners
 
-caughtWithDelay : Int -> State -> Bool
-caughtWithDelay n state = 
-    state
-        |> delay n
-        |> stepUntil isCaught
-        |> .caught
 
-delay : Int -> State -> State
-delay n state = 
-    if n == 0 then
-        state
-    else
-        delay (n-1) (moveScanners state)
+toSimpleScanner : Scanner -> (Int, Int)
+toSimpleScanner {depth, range} = (depth, range)
+
+canPass : Int -> List (Int, Int) -> Bool
+canPass delay scanners = 
+    List.all (canPassScannerWithDelay delay) scanners
+
+canPassScannerWithDelay : Int -> (Int, Int) -> Bool
+canPassScannerWithDelay delay (depth, range) = 
+    (delay + depth) % ((range-1)*2) /= 0
 
 stepUntil : (State -> Bool) -> State -> State
 stepUntil done state = 
@@ -78,8 +79,6 @@ stepUntil done state =
 pos : Int ->  State -> Bool
 pos pos state = state.position >= pos
 
-isCaught :  State -> Bool
-isCaught state = state.caught || state.position >=100
 
 moveScanners : State -> State
 moveScanners state =
