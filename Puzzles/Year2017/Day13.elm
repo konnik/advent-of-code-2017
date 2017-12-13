@@ -28,7 +28,7 @@ part1 : PuzzleSolver
 part1 input = 
     parseInput input
         |> initialState
-        |> stepUntil (pos 100)
+        |> stepUntil (pos 200)
         |> .severity
         |> toString
 
@@ -82,7 +82,7 @@ move state =
 checkCaught : State -> State
 checkCaught state = 
     if caught state then
-        { state | severity = severity state}
+        { state | severity =state.severity + (severity state)}
     else
         state
 
@@ -90,7 +90,7 @@ severity : State -> Int
 severity state = 
     case scannerAt state.firewall state.position  of 
         Nothing -> 0
-        Just scanner -> scanner.position * scanner.depth
+        Just scanner -> scanner.range * scanner.depth
 
 
 caught : State -> Bool
