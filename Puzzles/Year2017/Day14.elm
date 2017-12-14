@@ -8,7 +8,6 @@ import List.Extra exposing (groupsOf)
 import Bitwise
 import Char
 import Tuple exposing (first, second)
-import Dict exposing (Dict)
 import Set exposing (Set, intersect, fromList, diff, union)
 
 
@@ -23,8 +22,6 @@ tests =
     ]
 
 type alias Pos = (Int, Int)
-type alias Group = Maybe Int
-type alias Grid = Dict Pos Group
 
 part1 : PuzzleSolver
 part1 input = 
@@ -38,7 +35,7 @@ part2 : PuzzleSolver
 part2 input = 
     List.range 0 127
         |> List.map (hashRow input) 
-        |> usedPositions
+        |> usedSquares
         |> countGroups 0
         |> toString
 
@@ -69,8 +66,8 @@ findGroup group cells =
 
     
 
-usedPositions : List (List Int) -> Set Pos
-usedPositions grid = 
+usedSquares : List (List Int) -> Set Pos
+usedSquares grid = 
     let
         ones (p, x) = x == 1
         indexedRows = List.indexedMap (,) grid
@@ -91,47 +88,6 @@ countOnes str =
 
 hashRow : String -> Int -> List Int 
 hashRow input row = knotHash (input ++ "-" ++ (toString row))
-
-
-hexToBinary : List Char -> String
-hexToBinary hexChars = 
-    case hexChars of
-        [] -> ""
-        x::rest -> (intToBinary (intFromHexChar x)) ++ (hexToBinary rest)
-        
-intFromHexChar : Char -> Int
-intFromHexChar c = 
-        case c of
-            '0' -> 0
-            '1' -> 1
-            '2' -> 2
-            '3' -> 3
-            '4' -> 4
-            '5' -> 5
-            '6' -> 6
-            '7' -> 7
-            '8' -> 8
-            '9' -> 9
-            'a' -> 10
-            'b' -> 11
-            'c' -> 12
-            'd' -> 13
-            'e' -> 14
-            'f' -> 15
-            _ -> 0
-
-intToBinary : Int -> String
-intToBinary n = 
-    let
-        a = Bitwise.and 0x8 n |> Bitwise.shiftRightBy 3 |> toString
-        b = Bitwise.and 0x4 n |> Bitwise.shiftRightBy 2 |> toString
-        c = Bitwise.and 0x2 n |> Bitwise.shiftRightBy 1 |> toString
-        d = Bitwise.and 0x1 n |> Bitwise.shiftRightBy 0 |> toString
-    in
-        a ++ b ++ c++ d
-
-
-
 
 -- from day 10
 
