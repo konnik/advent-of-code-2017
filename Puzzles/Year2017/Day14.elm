@@ -7,7 +7,7 @@ import Puzzles.Year2017.Day10 exposing (..)
 import List.Extra exposing (groupsOf)
 import Bitwise
 import Char
-import Hex
+import Dict exposing (Dict)
 
 
 puzzle : Puzzle
@@ -15,9 +15,14 @@ puzzle = ( 2017, 14, "XXXX", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [ ( part1 "test-input" == "expected-output",  "Test part 1" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [
+        -- ( part1 "test-input" == "expected-output",  "Test part 1" )
+    --, ( part2 "test-input" == "expected-output",  "Test part 2" )
     ]
+
+type alias Pos = (Int, Int)
+type alias Group = Maybe Int
+type alias Grid = Dict Pos Group
 
 part1 : PuzzleSolver
 part1 input = 
@@ -29,8 +34,34 @@ part1 input =
 
 part2 : PuzzleSolver
 part2 input = 
-    "not implemented"
+    List.range 0 127
+        |> List.map (hashRow input) 
+        |> List.map String.toList
+        |> indexGrid
+        |> List.filter ones
+        |> Dict.fromList
+        |> Dict.map (\_ _ -> Nothing)
+        |> Dict.size 
+        |> toString
 
+        
+
+ones : (Pos, Char) -> Bool
+ones (p, x) = x == '1'
+
+indexGrid : List (List a) -> List ((Int, Int), a) 
+indexGrid grid = 
+    let
+        indexedRows = List.indexedMap (,) grid
+    in
+        List.concat (List.map indexCols indexedRows)
+
+indexCols : (Int , List a) -> List ((Int, Int ), a)
+indexCols (y, items) = 
+    let 
+        mapItem y x e = ((x,y), e)
+    in
+        List.indexedMap (mapItem y) items
 
 countOnes : String -> Int
 countOnes str = 
