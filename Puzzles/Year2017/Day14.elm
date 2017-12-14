@@ -13,11 +13,11 @@ import Set exposing (Set, intersect, fromList, diff, union)
 
 
 puzzle : Puzzle
-puzzle = ( 2017, 14, "XXXX", tests, part1, part2 )
+puzzle = ( 2017, 14, "Disk Defragmentation", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [
+    [ -- tests are too slow.. :-)
         -- ( part1 "test-input" == "expected-output",  "Test part 1" )
     --, ( part2 "test-input" == "expected-output",  "Test part 2" )
     ]
@@ -30,7 +30,7 @@ part1 : PuzzleSolver
 part1 input = 
     List.range 0 127
         |> List.map (hashRow input) 
-        |> List.map countOnes
+        |> List.map List.sum
         |> List.sum
         |> toString
 
@@ -38,7 +38,6 @@ part2 : PuzzleSolver
 part2 input = 
     List.range 0 127
         |> List.map (hashRow input) 
-        |> List.map String.toList
         |> usedPositions
         |> countGroups 0
         |> toString
@@ -48,11 +47,7 @@ countGroups: Int -> Set Pos -> Int
 countGroups n cells = 
     case Set.toList cells of
         [] -> n
-        p :: _ -> 
-            let 
-                group = findGroup (Set.singleton p) cells
-            in
-                countGroups (n+1) (diff cells group)
+        p :: _ -> countGroups (n+1) (diff cells (findGroup (Set.singleton p) cells))
 
 
 expandWithNeighbours : Set Pos -> Set Pos
@@ -74,11 +69,10 @@ findGroup group cells =
 
     
 
-
-usedPositions : List (List Char) -> Set Pos
+usedPositions : List (List Int) -> Set Pos
 usedPositions grid = 
     let
-        ones (p, x) = x == '1'
+        ones (p, x) = x == 1
         indexedRows = List.indexedMap (,) grid
     in
        Set.fromList (List.map first (List.filter ones ( List.concat (List.map indexCols indexedRows))))
@@ -95,9 +89,8 @@ countOnes str =
      List.filter (\ x-> x == '1') (String.toList str)
         |> List.length
 
-hashRow : String -> Int -> String 
-hashRow input row = 
-    hexToBinary (String.toList (knotHash (input ++ "-" ++ (toString row))))
+hashRow : String -> Int -> List Int 
+hashRow input row = knotHash (input ++ "-" ++ (toString row))
 
 
 hexToBinary : List Char -> String
@@ -136,18 +129,32 @@ intToBinary n =
         d = Bitwise.and 0x1 n |> Bitwise.shiftRightBy 0 |> toString
     in
         a ++ b ++ c++ d
-        
+
+
+
 
 -- from day 10
 
+byteToBits : Int -> List Int
+byteToBits x =
+    let
+        bit x n = Bitwise.shiftRightBy n x |> Bitwise.and 0x1 
+    in
+        List.map (bit x) (List.reverse (List.range 0 7))
 
+
+knotHash : String -> List Int
 knotHash input =
     (parseInputAsAscii input) ++ [17, 31, 73, 47, 23]
         |> repeat 64 run initialState 
         |> .numbers
         |> denseHash
-        |> asHexString
+        |> toBits
 
+
+toBits : List Int -> List Int
+toBits bytes = 
+    List.concatMap byteToBits bytes
 
 parseInputAsList : String -> List Int
 parseInputAsList input = List.map toInt (String.split "," input)
