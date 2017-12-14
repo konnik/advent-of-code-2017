@@ -7,7 +7,9 @@ import Puzzles.Year2017.Day10 exposing (..)
 import List.Extra exposing (groupsOf)
 import Bitwise
 import Char
+import Tuple exposing (first, second)
 import Dict exposing (Dict)
+import Set exposing (Set, intersect, fromList, diff, union)
 
 
 puzzle : Puzzle
@@ -37,24 +39,49 @@ part2 input =
     List.range 0 127
         |> List.map (hashRow input) 
         |> List.map String.toList
-        |> indexGrid
-        |> List.filter ones
-        |> Dict.fromList
-        |> Dict.map (\_ _ -> Nothing)
-        |> Dict.size 
+        |> usedPositions
+        |> countGroups 0
         |> toString
 
-        
 
-ones : (Pos, Char) -> Bool
-ones (p, x) = x == '1'
+countGroups: Int -> Set Pos -> Int
+countGroups n cells = 
+    case Set.toList cells of
+        [] -> n
+        p :: _ -> 
+            let 
+                group = findGroup (Set.singleton p) cells
+            in
+                countGroups (n+1) (diff cells group)
 
-indexGrid : List (List a) -> List ((Int, Int), a) 
-indexGrid grid = 
+
+expandWithNeighbours : Set Pos -> Set Pos
+expandWithNeighbours cells = 
+    Set.toList cells
+        |> List.concatMap (\ (x,y) -> [(x,y), (x+1,y), (x-1,y), (x,y+1), (x,y-1)]) 
+        |> Set.fromList
+
+
+findGroup : Set Pos -> Set Pos -> Set Pos
+findGroup group cells = 
     let
+        newGroup = intersect cells (expandWithNeighbours group)
+    in
+        if Set.size newGroup == Set.size group then 
+            group
+        else
+            findGroup newGroup cells
+
+    
+
+
+usedPositions : List (List Char) -> Set Pos
+usedPositions grid = 
+    let
+        ones (p, x) = x == '1'
         indexedRows = List.indexedMap (,) grid
     in
-        List.concat (List.map indexCols indexedRows)
+       Set.fromList (List.map first (List.filter ones ( List.concat (List.map indexCols indexedRows))))
 
 indexCols : (Int , List a) -> List ((Int, Int ), a)
 indexCols (y, items) = 
