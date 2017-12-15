@@ -13,37 +13,56 @@ tests =
     , ( part2 "test-input" == "expected-output",  "Test part 2" )
     ]
 
---Generator A starts with 783
---Generator B starts with 325
-
 type alias Generator a = a -> a
 type alias Pair a = (a, a)
 type alias Matcher a = (a, a) -> Bool
 
-
 part1 : PuzzleSolver
 part1 input =
-    countWith 
+    parseInput input
+        |> solvePart1
+        |> toString
+
+part2 : PuzzleSolver
+part2 input = 
+    parseInput input
+        |> solvePart2
+        |> toString
+
+solvePart1 : (Int, Int) -> Int
+solvePart1 = 
+    count 
         matchingLowest16bits 
         ( pairwise 
             (generatorWithFactor 16807) 
             (generatorWithFactor 48271)
         ) 
         40000000 0 
-        (783, 325)
-    |> toString
 
-part2 : PuzzleSolver
-part2 input = 
-    countWith 
-        matchingLowest16bits 
-        ( pairwise 
-            (multipleOf 4 (generatorWithFactor 16807))
-            (multipleOf 8 (generatorWithFactor 48271))
-        )  
-        5000000 0 
-        (783, 325)
-    |> toString
+solvePart2 : (Int, Int) -> Int
+solvePart2 = 
+    count 
+            matchingLowest16bits 
+            ( pairwise 
+                (multipleOf 4 (generatorWithFactor 16807))
+                (multipleOf 8 (generatorWithFactor 48271))
+            )  
+            5000000 0 
+
+parseInput : String -> (Int, Int)
+parseInput input = 
+   case List.map parseLine (String.lines input) of
+        [a,b] -> (a,b)
+        _ -> (0,0)
+
+parseLine : String -> Int
+parseLine line = 
+    String.split " " line
+        |> List.drop 4 
+        |> List.head
+        |> Maybe.withDefault ""
+        |> String.toInt
+        |> Result.withDefault 0  
 
 generatorWithFactor : Int -> Generator Int
 generatorWithFactor factor prev = rem (prev * factor) 2147483647
@@ -62,8 +81,8 @@ pairwise : Generator Int -> Generator Int -> Generator (Pair Int)
 pairwise generatorA generatorB (prevA, prevB) =
     (generatorA prevA, generatorB prevB)
 
-countWith : Matcher a -> Generator (Pair a) -> Int -> Int -> Pair a -> Int
-countWith matcher generator iterations counter prev =
+count : Matcher a -> Generator (Pair a) -> Int -> Int -> Pair a -> Int
+count matcher generator iterations counter prev =
     if iterations == 0 then
         counter
     else
@@ -74,7 +93,7 @@ countWith matcher generator iterations counter prev =
                         else
                             counter 
         in
-            countWith matcher generator (iterations-1) newCount next
+            count matcher generator (iterations-1) newCount next
     
 
 
