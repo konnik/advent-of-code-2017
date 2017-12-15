@@ -9,8 +9,9 @@ puzzle = ( 2017, 15, "Dueling Generators", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [ ( part1 "test-input" == "expected-output",  "Test part 1" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [ -- test too slow to run by default
+    --  ( solvePart1 (65, 8921) == 588,  "Test part 1" )
+    --, ( solvePart2 (65, 8921) == 309,  "Test part 2" )
     ]
 
 type alias Generator a = a -> a
