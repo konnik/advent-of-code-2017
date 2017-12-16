@@ -17,6 +17,7 @@ import Puzzles.Year2017.Day12
 import Puzzles.Year2017.Day13
 import Puzzles.Year2017.Day14
 import Puzzles.Year2017.Day15
+import Puzzles.Year2017.Day16
 
 puzzles : List Puzzle
 puzzles =
@@ -33,7 +34,8 @@ puzzles =
     , Puzzles.Year2017.Day11.puzzle 
     , Puzzles.Year2017.Day12.puzzle 
     , Puzzles.Year2017.Day13.puzzle 
-    , Puzzles.Year2017.Day14.puzzle 
-    , Puzzles.Year2017.Day15.puzzle 
+    , Puzzles.Year2017.Day14.puzzle
+    , Puzzles.Year2017.Day15.puzzle
+    , Puzzles.Year2017.Day16.puzzle
     ]
 
