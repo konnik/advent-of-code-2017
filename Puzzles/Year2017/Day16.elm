@@ -4,6 +4,7 @@ import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult
 
 import List.Extra as LE exposing ((!!))
 import Dict exposing (Dict)
+import Array exposing (Array)
 
 puzzle : Puzzle
 puzzle = ( 2017, 16, "Permutation Promenade", tests, part1, part2 )
@@ -17,32 +18,33 @@ type Move
     | Partner Char Char
     | Error
 
+type alias State = Array Char
 
-initialState : List Char
-initialState = String.toList "abcdefghijklmnop"
+initialState : Array Char
+initialState = Array.fromList (String.toList "abcdefghijklmnop")
 
 part1 : PuzzleSolver
 part1 input = 
     parseInput input
         |> executeMoves initialState
-        |> String.fromList 
+        |> String.fromList << Array.toList
 
 part2 : PuzzleSolver
 part2 input = 
     parseInput input
         |> loop 0 Dict.empty initialState
-        |> String.fromList 
+        |> String.fromList << Array.toList
 
-loop : Int -> Dict (List Char) Int -> List Char -> List Move -> List Char 
+loop : Int -> Dict String Int -> Array Char -> List Move -> Array Char 
 loop n history input moves = 
     if n == 1000000000 then
         input
     else
-        case Dict.get input history of
+        case Dict.get (String.fromList (Array.toList input)) history of
             Nothing ->
                 loop 
                     (n+1) 
-                    (Dict.insert input n history)
+                    (Dict.insert (String.fromList (Array.toList input)) n history)
                     (executeMoves input moves)
                     moves
             Just x -> 
@@ -59,10 +61,10 @@ loop n history input moves =
                         moves
 
 
-executeMoves : List Char -> List Move -> List Char
+executeMoves : Array Char -> List Move -> Array Char
 executeMoves input moves = List.foldl move input moves
 
-move : Move -> List Char -> List Char
+move : Move -> Array Char -> Array Char
 move move list = 
     case move of
         Spin n -> spin n list
@@ -70,35 +72,28 @@ move move list =
         Partner ac bc -> partner ac bc list 
         Error -> list
 
-spin : Int -> List Char -> List Char
+spin : Int -> Array Char -> Array Char
 spin n list = 
     let 
-        last = List.drop ((List.length list)-n) list 
-        first = List.take  ((List.length list)-n) list
-    in List.append last first 
+        last = Array.slice -n (Array.length list) list
+        first = Array.slice 0 -n list
+    in Array.append last first 
 
-exchange : Int -> Int -> List Char -> List Char
+exchange : Int -> Int -> Array Char -> Array Char
 exchange a b list = 
     let 
-        ac = Maybe.withDefault '.' (list !! a)
-        bc = Maybe.withDefault '.' (list !! b)
+        ac = Maybe.withDefault '.' (Array.get a list)
+        bc = Maybe.withDefault '.' (Array.get b list)
     in
-        LE.setAt b ac list
-            |> Maybe.withDefault list 
-            |> LE.setAt a bc 
-            |> Maybe.withDefault list 
+        Array.set b ac list |> Array.set a bc
 
-partner : Char -> Char -> List Char -> List Char
+partner : Char -> Char -> Array Char -> Array Char
 partner ac bc list = 
-    let     
-        a = Maybe.withDefault 0 (LE.elemIndex ac list)
-        b = Maybe.withDefault 0 (LE.elemIndex bc list)
-    in
-        LE.setAt b ac list
-            |> Maybe.withDefault list 
-            |> LE.setAt a bc 
-            |> Maybe.withDefault list 
-        
+    Array.map (\ x -> 
+        if x == ac then bc
+        else if x == bc then ac
+        else x
+    ) list
 
 parseInput : String -> List Move
 parseInput input =
