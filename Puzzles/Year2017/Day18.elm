@@ -28,6 +28,7 @@ tests =
 type Source 
     = Register String
     | Value Int
+
 type Instruction
     = Snd Source
     | Set String Source
@@ -38,11 +39,27 @@ type Instruction
     | Jgz Source Source
     | Error String
 
-
 type alias Registers = Dict String Int
-type alias State = {registers: Registers, program: List Instruction, pos: Int, currentSound: Maybe Int, recoveredSound : Maybe Int}
-type alias State2 = {id: Int, registers: Registers, program: List Instruction, pos: Int, state: ProgramState, sendCount: Int, rcvQueue: List Int}
+
+type alias State = 
+    { registers: Registers
+    , program: List Instruction
+    , pos: Int
+    , currentSound: Maybe Int
+    , recoveredSound : Maybe Int
+    }
+
 type ProgramState = Running | Terminated | Waiting
+
+type alias State2 = 
+    { id: Int
+    , registers: Registers
+    , program: List Instruction
+    , pos: Int
+    , state: ProgramState
+    , sendCount: Int
+    , messages: List Int
+    }
 
 part1 : PuzzleSolver
 part1 input = 
@@ -67,7 +84,7 @@ part2 input =
             , program = parseInput input
             , pos = 0
             , sendCount = 0
-            , rcvQueue = []
+            , messages = []
             , state  = Running
             }
         initialState1 = 
@@ -76,7 +93,7 @@ part2 input =
             , program = parseInput input
             , pos = 0
             , sendCount = 0
-            , rcvQueue = []
+            , messages = []
             , state  = Running
             }
     in
@@ -85,19 +102,19 @@ part2 input =
 
 runUntilEndOrDeadlock : State2 -> State2 -> Int
 runUntilEndOrDeadlock a b = 
-    if (a.state /= Running) &&  ( b.state /= Running) && (b.id == 1 )  then
+    if (a.state /= Running) &&  ( b.state /= Running) && (b.id==1) then
         b.sendCount
     else
         let 
             (newStateA, messages) = runInstruction2 a
         in 
-            runUntilEndOrDeadlock {b | rcvQueue = b.rcvQueue ++ messages } a
+            runUntilEndOrDeadlock {b | messages = b.messages ++ messages } newStateA
 
 runInstruction2 : State2 -> (State2, List Int)
 runInstruction2 state = 
-    if (state.state /= Terminated) then 
+    if (state.state == Terminated) then 
         (state, [])
-    else if state.pos < 0 || state.pos >= List.length state.program then
+    else if (state.pos < 0) || (state.pos >= List.length state.program) then
         ({ state | state = Terminated }, []) 
     else 
         let 
@@ -120,9 +137,9 @@ runInstruction2 state =
                 Mod reg source -> 
                     ({ state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) % (valueOf source)) }, [])
                 Rcv reg -> 
-                    case state.rcvQueue of
+                    case state.messages of
                         [] -> ({ state | state = Waiting} , [])
-                        x::rest -> ({ state |  state = Running, pos = state.pos + 1, rcvQueue = rest, registers = set reg x}, []) 
+                        x::rest -> ({ state |  state = Running, pos = state.pos + 1, messages = rest, registers = set reg x}, []) 
                 Jgz x y -> 
                     if (valueOf x) > 0 then 
                         ({ state | pos = state.pos + (valueOf y) },[])
