@@ -19,11 +19,10 @@ tests =
     , ( parseLine "mul x y" == Mul "x" (Register "y"),  "mul x y" )
     , ( parseLine "mod x 5" == Mod "x" (Value 5),       "mod x 5" )
     , ( parseLine "mod x y" == Mod "x" (Register "y"),  "mod x y" )
-    , ( parseLine "rcv 5"   == Rcv (Value 5),           "rcv 5" )
-    , ( parseLine "rcv y"   == Rcv (Register "y"),      "rcv y" )
+    , ( parseLine "rcv y"   == Rcv "y",      "rcv y" )
     , ( parseLine "jgz 3 5" == Jgz (Value 3) (Value 5),           "jgz 3 5" )
     , ( parseLine "jgz x y" == Jgz (Register "x") (Register "y"), "jgz x y" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+--    , ( part2 "test-input" == "expected-output",  "Test part 2" )
     ]
 
 type Source 
@@ -35,13 +34,15 @@ type Instruction
     | Add String Source
     | Mul String Source
     | Mod String Source
-    | Rcv Source
+    | Rcv String
     | Jgz Source Source
     | Error String
 
+
 type alias Registers = Dict String Int
 type alias State = {registers: Registers, program: List Instruction, pos: Int, currentSound: Maybe Int, recoveredSound : Maybe Int}
-type alias State2 = {registers: Registers, program: List Instruction, pos: Int, waits: Bool, terminated: Bool, sendCount: Int, rcvQueue: List Int, sndQueue: List Int}
+type alias State2 = {id: Int, registers: Registers, program: List Instruction, pos: Int, state: ProgramState, sendCount: Int, rcvQueue: List Int}
+type ProgramState = Running | Terminated | Waiting
 
 part1 : PuzzleSolver
 part1 input = 
@@ -61,24 +62,22 @@ part2 : PuzzleSolver
 part2 input = 
     let 
         initialState0 = 
-            { registers = Dict.insert "p" 0 Dict.empty
+            { id = 0
+            , registers = Dict.insert "p" 0 Dict.empty
             , program = parseInput input
             , pos = 0
-            , waits = False
-            , terminated = False
             , sendCount = 0
             , rcvQueue = []
-            , sndQueue = []
+            , state  = Running
             }
         initialState1 = 
-            { registers = Dict.insert "p" 1 Dict.empty
+            { id = 1
+            , registers = Dict.insert "p" 1 Dict.empty
             , program = parseInput input
             , pos = 0
-            , waits = False
-            , terminated = False
             , sendCount = 0
             , rcvQueue = []
-            , sndQueue = []
+            , state  = Running
             }
     in
         runUntilEndOrDeadlock initialState0 initialState1
@@ -86,50 +85,50 @@ part2 input =
 
 runUntilEndOrDeadlock : State2 -> State2 -> Int
 runUntilEndOrDeadlock a b = 
-    if (a.terminated || a.waits) && (b.terminated || b.waits) then
+    if (a.state /= Running) &&  ( b.state /= Running) && (b.id == 1 )  then
         b.sendCount
     else
         let 
-            newStateA = runInstruction2 { a | rcvQueue = b.sndQueue }
-            newStateB = runInstruction2 { b | rcvQueue = newStateA.sndQueue }
+            (newStateA, messages) = runInstruction2 a
         in 
-            runUntilEndOrDeadlock newStateA newStateB
+            runUntilEndOrDeadlock {b | rcvQueue = b.rcvQueue ++ messages } a
 
-runInstruction2 : State2 -> State2
+runInstruction2 : State2 -> (State2, List Int)
 runInstruction2 state = 
-    let 
-        instr = Maybe.withDefault (Error "outside program") (getAt state.pos state.program)
-        valueOf src =   
-            case src of 
-                Value x -> x
-                Register x -> Maybe.withDefault 0 (Dict.get x state.registers)
-        set r v = Dict.insert r v state.registers
-    in   
-        case instr of
-            Snd x -> 
-                { state | pos = state.pos + 1, sndQueue = [x]}
-            Set reg source -> 
-                { state | pos = state.pos + 1, registers = set reg (valueOf source) }
-            Add reg source -> 
-                { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) + (valueOf source)) }
-            Mul reg source -> 
-                { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) * (valueOf source)) }
-            Mod reg source -> 
-                { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) % (valueOf source)) }
-            Rcv reg -> 
-                case state.rcvQueue of
-                    [] -> { state | waits = True} 
-                    x::rest -> { state | pos = state.pos + 1, rcvQueue = rest, set reg}
-                if (valueOf x) /= 0 then 
-                    { state | pos = state.pos + 1}
-                else 
-                    { state | pos = state.pos + 1 } 
-            Jgz x y -> 
-                if (valueOf x) > 0 then 
-                    { state | pos = state.pos + (valueOf y) }
-                else 
-                    { state | pos = state.pos + 1 } 
-            _ -> Debug.log ("Unhandled instr: " ++ (toString instr)) state
+    if (state.state /= Terminated) then 
+        (state, [])
+    else if state.pos < 0 || state.pos >= List.length state.program then
+        ({ state | state = Terminated }, []) 
+    else 
+        let 
+            instr = Maybe.withDefault (Error "outside program") (getAt state.pos state.program)
+            valueOf src =   
+                case src of 
+                    Value x -> x
+                    Register x -> Maybe.withDefault 0 (Dict.get x state.registers)
+            set r v = Dict.insert r v state.registers
+        in   
+            case instr of
+                Snd x -> 
+                    ( { state | pos = state.pos + 1, sendCount = state.sendCount + 1}, [valueOf x] ) 
+                Set reg source -> 
+                    ({ state | pos = state.pos + 1, registers = set reg (valueOf source) }, [])
+                Add reg source -> 
+                    ( { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) + (valueOf source)) }, [])
+                Mul reg source -> 
+                    ( { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) * (valueOf source)) }, [])
+                Mod reg source -> 
+                    ({ state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) % (valueOf source)) }, [])
+                Rcv reg -> 
+                    case state.rcvQueue of
+                        [] -> ({ state | state = Waiting} , [])
+                        x::rest -> ({ state |  state = Running, pos = state.pos + 1, rcvQueue = rest, registers = set reg x}, []) 
+                Jgz x y -> 
+                    if (valueOf x) > 0 then 
+                        ({ state | pos = state.pos + (valueOf y) },[])
+                    else 
+                        ({ state | pos = state.pos + 1 } , []) 
+                _ -> Debug.log ("Unhandled instr: " ++ (toString instr)) (state, []) 
 
 
 runUntilRecovered : State -> Int
@@ -147,6 +146,8 @@ runInstruction state =
             case src of 
                 Value x -> x
                 Register x -> Maybe.withDefault 0 (Dict.get x state.registers)
+        valueReg reg =   
+                Maybe.withDefault 0 (Dict.get reg state.registers)
         set r v = Dict.insert r v state.registers
     in   
         case instr of
@@ -161,7 +162,7 @@ runInstruction state =
             Mod reg source -> 
                 { state | pos = state.pos + 1, registers = set reg ((valueOf (Register reg)) % (valueOf source)) }
             Rcv x -> 
-                if (valueOf x) /= 0 then 
+                if (valueReg x) /= 0 then 
                     { state | pos = state.pos + 1, recoveredSound = state.currentSound }
                 else 
                     { state | pos = state.pos + 1 } 
@@ -191,7 +192,7 @@ parseLine line =
             ["add",a,b] -> Add a (parseSource b)
             ["mul",a,b] -> Mul a (parseSource b)
             ["mod",a,b] -> Mod a (parseSource b)
-            ["rcv",a] -> Rcv (parseSource a)
+            ["rcv",a] -> Rcv a
             ["jgz",a,b] -> Jgz (parseSource a) (parseSource b)
             _ -> Error line
 
