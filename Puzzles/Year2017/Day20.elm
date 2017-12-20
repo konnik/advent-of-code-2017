@@ -2,7 +2,7 @@ module Puzzles.Year2017.Day20 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 import Set exposing (Set)
-import List.Extra exposing (groupWhile) 
+import List.Extra as LE exposing (groupWhile) 
 
 puzzle : Puzzle
 puzzle = ( 2017, 20, "Particle Swarm", tests, part1, part2 )
@@ -16,7 +16,7 @@ type alias Particle = (Vector, Vector, Vector)
 part1 : PuzzleSolver
 part1 input = 
     parseInput input
-    |> findClosest
+    |> indexOfParticleWithLeastAcceleration
     |> toString
     
 part2 : PuzzleSolver
@@ -47,45 +47,32 @@ integrate (p, v, a) =
 removeCollisions : List Particle -> List Particle
 removeCollisions particles = 
     let
-        collidingParticles =  collisions particles
+        positionOf (p, _,_) = p
+        duplicatePositions = duplicates (List.map positionOf particles)
+        hasCollided (p,_,_) = Set.member p duplicatePositions
     in
-        List.filter (\ p -> not (Set.member p collidingParticles)) particles
+        List.filter (not << hasCollided) particles
 
 
-collisions : List Particle -> Set Particle
-collisions particles = 
-    let
-        samePosition (p1, _,_) (p2, _,_) = p1 == p2
-        position (p, _,_) = p
-
-        collisionGroups = groupWhile samePosition (List.sortBy position particles)
-        collisions =  
-            List.filter (\ x -> (List.length x) > 1) collisionGroups
-            |> List.concat
-            |> Set.fromList
-    in
-        collisions
-
-
-findClosest : List (Vector, Vector, Vector) -> Int
-findClosest list = 
+indexOfParticleWithLeastAcceleration : List Particle -> Int
+indexOfParticleWithLeastAcceleration list = 
     let 
         manhattanDistance (x,y,z) = abs x + abs y + abs z
     in
         list 
-            |> List.indexedMap (,) 
+            |> List.indexedMap (,)
             |> List.sortBy (\(i, (p, v, a)) -> manhattanDistance a)
             |> List.head 
             |> Maybe.withDefault (-1,((0,0,0),(0,0,0), (0,0,0)))
             |> Tuple.first
 
 
-parseInput : String -> List (Vector, Vector, Vector)
+parseInput : String -> List Particle
 parseInput input = 
     String.lines input 
     |> List.map parseLine
 
-parseLine : String -> (Vector, Vector, Vector)
+parseLine : String -> Particle
 parseLine line = 
     let
         filterChars c = Set.member c (Set.fromList ['<', '>', 'p', 'v', 'a', '='])
@@ -101,3 +88,23 @@ parseLine line =
         
 toInt : String -> Int
 toInt = Result.withDefault 0 << String.toInt
+
+
+duplicates : List comparable -> Set comparable
+duplicates list = 
+    histogram list 
+        |> List.filter (\ (_, count) -> count > 1)
+        |> List.map Tuple.first
+        |> Set.fromList
+
+histogram : List comparable -> List (comparable, Int)
+histogram list = 
+    let
+        frequency : List a -> Maybe (a, Int)
+        frequency list = Maybe.map (\ x -> (x, List.length list)) (List.head list)
+    in
+        List.sort list
+            |> LE.group
+            |> List.filterMap frequency
+
+
