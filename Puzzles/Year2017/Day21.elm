@@ -7,36 +7,25 @@ import Dict exposing (Dict)
 puzzle : Puzzle
 puzzle = ( 2017, 21, "Fractal Art", tests, part1, part2 )
 
+-- tests
 
-testGrid = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
-testGridSplitted = [
-    [
-        [1,2],
-        [5,6]
-    ],
-    [
-        [3,4],
-        [7,8]
-    ],
-    [
-        [9,10],
-        [13,14]
-    ],
-    [
-        [11,12],
-        [15,16]
-    ]]
+grid : Int -> Grid Int
+grid size = List.range 1 size |> List.map (\x -> List.range (x*10+1) (x*10+size))
 
-grid6x6 = List.range 1 6 |> List.map (\x -> List.range (x*10+1) (x*10+6))
+
+testRules : Rules 
+testRules = parseInput "../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#"
 
 tests : TestSuite
 tests = 
-    [
-      ( split testGrid == testGridSplitted,  "Split grid 4x4" )
-    , ( split [[1,2],[3,4]] == [[[1,2],[3,4]]],  "Split grid 2x2" )
-    , ( split [[1,2,3],[4,5,6],[7,8,9]] == [[[1,2,3],[4,5,6],[7,8,9]]],  "Split grid 3x3" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [ ((join << split << grid) 2 == grid 2, "Split / Join 2x2 grid" )
+    , ((join << split << grid) 3 == grid 3, "Split / Join 3x3 grid" )
+    , ((join << split << grid) 4 == grid 4, "Split / Join 4x4 grid" )
+    , ((join << split << grid) 6 == grid 6, "Split / Join 6x6 grid" )
+    , ((join << split << grid) 8 == grid 8, "Split / Join 8x8 grid" )
     ]
+
+-- solution for day 21
 
 type alias Pixel = Char
 type alias Grid a = List (List a)
@@ -44,30 +33,30 @@ type alias Rules = Dict (Grid Char) (Grid Char)
 
 part1 : PuzzleSolver
 part1 input = 
-    let 
-        enhance = next (parseInput input)
-    in
-        initialGrid
-            |> enhance |> Debug.log "grid" 
-            |> enhance  |> Debug.log "grid" 
-            |> enhance  |> Debug.log "grid" 
-            |> enhance  |> Debug.log "grid" 
-            |> enhance  |> Debug.log "grid" 
-            |> List.concat  |> List.filter (\x -> x=='#') |> List.length
-            |> toString
+    initialGrid
+        |> run 5 (enhanceWithRules (parseInput input))
+        |> countPixels
+        |> toString
 
 part2 : PuzzleSolver
 part2 input = 
-    "not implemented"
+    initialGrid
+        |> run 18 (enhanceWithRules (parseInput input))
+        |> countPixels
+        |> toString
 
 initialGrid : Grid Char
 initialGrid = [['.', '#', '.'], ['.', '.', '#'], ['#', '#', '#']]
 
-testRules : Rules 
-testRules = parseInput "../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#"
+run : Int -> (Grid a -> Grid a) -> Grid a -> Grid a
+run n enhance grid = 
+    if n == 0 then
+        grid
+    else
+        run (n-1) enhance (enhance grid)
 
-next : Rules -> Grid Char -> Grid Char
-next rules grid = 
+enhanceWithRules : Rules -> Grid Char -> Grid Char
+enhanceWithRules rules grid = 
     let
         enhance g = 
             case Dict.get g rules of
@@ -75,10 +64,16 @@ next rules grid =
                 Nothing -> Debug.log ("No match for pattern ") g
     in
         grid
-            |> split
-            |> List.map enhance
-            |> join
+           |> split
+           |> List.map (List.map enhance)
+           |> join
 
+countPixels : Grid Char -> Int
+countPixels grid = 
+    grid
+        |> List.concat
+        |> List.filter (\x -> x=='#') 
+        |> List.length
 
 parseInput : String -> Rules
 parseInput input = 
@@ -100,16 +95,40 @@ parseLine line =
         permutations left 
             |> List.map (\ x -> (x,right))
 
+join : Grid (Grid a) -> Grid a
+join grid =  
+    grid
+        |> LE.transpose 
+        |> List.map (List.concat) 
+        |> LE.transpose 
+        |> List.map (List.concat)
+
+
+split : Grid a -> Grid (Grid a)
+split grid = 
+    let 
+        targetSize = 
+            if (List.length grid) % 2 == 0 then 
+                2
+            else
+                3
+    in
+        grid
+            |> List.map (LE.groupsOf targetSize) 
+            |> LE.transpose 
+            |> List.map (LE.groupsOf targetSize) 
+            |> LE.transpose
+
 permutations : Grid a -> List (Grid a)
 permutations grid = 
-    [ grid
-    , (transpose >> flipv) grid
-    , (transpose >> fliph) grid
-    , (flipv >> fliph) grid
-    , flipv grid
-    , (flipv >> transpose >> flipv) grid
-    , (flipv >> transpose >> fliph) grid
-    , (flipv >> flipv >> fliph) grid
+    [ grid -- 0 
+    , (transpose >> flipv) grid -- 90 left
+    , (transpose >> fliph) grid -- 90 right 
+    , (flipv >> fliph) grid -- 180
+    , fliph grid -- flipped 0 
+    , (fliph >> transpose >> flipv) grid -- flipped 90 left
+    , (fliph >> transpose >> fliph) grid -- flipped 90 right 
+    , (fliph >> flipv >> fliph) grid -- flipped 180 
     ]
 
 transpose : Grid a -> Grid a
@@ -121,30 +140,4 @@ flipv = List.reverse
 fliph : Grid a -> Grid a
 fliph = List.map List.reverse
 
-join : List (Grid a) -> Grid a
-join gridList =  
-    let
-        gridsPerSide = round(sqrt (toFloat (List.length gridList)))
-    in
-        gridList 
-            |> List.map (LE.groupsOf gridsPerSide) 
-            |> List.map List.concat 
-            |> LE.transpose 
-            |> List.map (LE.groupsOf gridsPerSide) 
-            |> List.map (List.map List.concat) 
-            |> LE.transpose 
-            |> List.concat
 
-
-split : Grid a -> List (Grid a)
-split grid = 
-    let 
-        targetSize = 
-            if (List.length grid) % 3 == 0 then 
-                3
-            else
-                2
-        splitForSize n = List.concat << (List.map (List.map LE.transpose << LE.groupsOf n << LE.transpose)) << LE.groupsOf n
-    in
-        splitForSize targetSize grid
-    
