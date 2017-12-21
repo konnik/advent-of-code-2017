@@ -2,6 +2,7 @@ module Puzzles.Year2017.Day21 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 import List.Extra as LE
+import Dict exposing (Dict)
 
 puzzle : Puzzle
 puzzle = ( 2017, 21, "Fractal Art", tests, part1, part2 )
@@ -26,6 +27,8 @@ testGridSplitted = [
         [15,16]
     ]]
 
+grid6x6 = List.range 1 6 |> List.map (\x -> List.range (x*10+1) (x*10+6))
+
 tests : TestSuite
 tests = 
     [
@@ -37,15 +40,65 @@ tests =
 
 type alias Pixel = Char
 type alias Grid a = List (List a)
+type alias Rules = Dict (Grid Char) (Grid Char)
 
 part1 : PuzzleSolver
 part1 input = 
-    "not implemented"
+    let 
+        enhance = next (parseInput input)
+    in
+        initialGrid
+            |> enhance |> Debug.log "grid" 
+            |> enhance  |> Debug.log "grid" 
+            |> enhance  |> Debug.log "grid" 
+            |> enhance  |> Debug.log "grid" 
+            |> enhance  |> Debug.log "grid" 
+            |> List.concat  |> List.filter (\x -> x=='#') |> List.length
+            |> toString
 
 part2 : PuzzleSolver
 part2 input = 
     "not implemented"
 
+initialGrid : Grid Char
+initialGrid = [['.', '#', '.'], ['.', '.', '#'], ['#', '#', '#']]
+
+testRules : Rules 
+testRules = parseInput "../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#"
+
+next : Rules -> Grid Char -> Grid Char
+next rules grid = 
+    let
+        enhance g = 
+            case Dict.get g rules of
+                Just x -> x 
+                Nothing -> Debug.log ("No match for pattern ") g
+    in
+        grid
+            |> split
+            |> List.map enhance
+            |> join
+
+
+parseInput : String -> Rules
+parseInput input = 
+    String.lines input 
+        |> List.map parseLine
+        |> List.concat
+        |> Dict.fromList
+
+parseLine : String -> List (Grid Char, Grid Char)
+parseLine line = 
+    let 
+        parseGrid x = List.map (String.toList) (String.split "/" x)
+
+        (left, right) = 
+            case String.split " => " line of
+                [a,b] -> (parseGrid a, parseGrid b)
+                _ -> Debug.log ("Parse error: " ++ line) ([[]],[[]])
+    in
+        permutations left 
+            |> List.map (\ x -> (x,right))
 
 permutations : Grid a -> List (Grid a)
 permutations grid = 
@@ -86,7 +139,11 @@ join gridList =
 split : Grid a -> List (Grid a)
 split grid = 
     let 
-        targetSize = 2 + (List.length grid % 2) 
+        targetSize = 
+            if (List.length grid) % 3 == 0 then 
+                3
+            else
+                2
         splitForSize n = List.concat << (List.map (List.map LE.transpose << LE.groupsOf n << LE.transpose)) << LE.groupsOf n
     in
         splitForSize targetSize grid
