@@ -2,15 +2,14 @@ module Puzzles.Year2017.Day22 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
 
-import Set exposing (Set)
+import Dict exposing (Dict)
 
 puzzle : Puzzle
 puzzle = ( 2017, 22, "Sporifica Virus", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [ ( solve 10000 (1,1) "..#\n#..\n..." == 5587,  "Test part 1" )
-    , ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [ ( solve1 10000 (1,1) "..#\n#..\n..." == 5587,  "Test part 1" )
     ]
 
 type Node 
@@ -21,49 +20,118 @@ type Node
 
 type alias Pos = (Int, Int)
 type alias Dir = (Int, Int)
-type alias Infected = Set Pos
+type alias Infected = Dict Pos Node
 type alias State = { pos: Pos, dir : Dir, infected: Infected, infectionCount: Int}
 
 part1 : PuzzleSolver
 part1 input = 
-    solve 10000 (12,12) input
+    solve1 10000 (12,12) input
         |> toString
 
 part2 : PuzzleSolver
 part2 input = 
-    "not implemented"
-
-solve : Int -> Pos -> String -> Int
-solve bursts startPos input = 
-    parseInput input
-        |> initialState startPos
-        |> repeat bursts step
-        |> .infectionCount
+    solve2 10000000 (12,12) input
+        |> toString
 
 initialState : Pos -> Infected -> State
 initialState pos infected = 
     { pos = pos, dir = (0,-1), infected = infected, infectionCount = 0}
 
-countInfected : State -> Int
-countInfected state = 
-    Set.size state.infected
+-- solution for part 1
 
-repeat : Int -> (State -> State) -> State -> State
-repeat n step state = 
-    if n == 0 then
-        state
-    else 
-        repeat (n-1) step (step state) 
+solve1 : Int -> Pos -> String -> Int
+solve1 bursts startPos input = 
+    parseInput input
+        |> initialState startPos
+        |> repeat bursts step1
+        |> .infectionCount
 
-turn : State -> State
-turn state = 
+turn1 : State -> State
+turn1 state = 
     let 
         (dx, dy) = state.dir
+    in  
+        case Maybe.withDefault Clean (Dict.get state.pos state.infected) of
+            Clean -> { state | dir = (dy, -dx) }
+            Infected -> { state | dir = (-dy, dx) }
+            _ -> Debug.log "turn1: Invalid state!" state
+
+infect1 : State -> State
+infect1 state = 
+    let 
+        newNodeState = 
+            case Maybe.withDefault Clean (Dict.get state.pos state.infected) of
+                Clean -> Infected
+                Infected -> Clean 
+                _ -> Debug.log "Infect1: illegal state!" Clean
+        
+        newInfectionCount = 
+            if newNodeState == Infected then 
+                state.infectionCount + 1
+            else 
+                state.infectionCount
     in
-        if Set.member state.pos state.infected then
-            { state | dir = (-dy, dx) }
-        else
-            { state | dir = (dy, -dx) }
+        { state | infected = Dict.insert state.pos newNodeState state.infected, infectionCount = newInfectionCount}
+
+step1 : State -> State
+step1 state =
+    state
+        |> turn1
+        |> infect1
+        |> move
+
+-- solution for part 2
+
+solve2 : Int -> Pos -> String -> Int
+solve2 bursts startPos input = 
+    parseInput input
+        |> initialState startPos
+        |> repeat bursts step2
+        |> .infectionCount
+
+
+
+turn2 : State -> State
+turn2 state = 
+    let 
+        (dx, dy) = state.dir
+    in  
+        case Maybe.withDefault Clean (Dict.get state.pos state.infected) of
+            Clean -> { state | dir = (dy, -dx) }
+            Weakened -> state
+            Infected -> { state | dir = (-dy, dx) }
+            Flagged -> { state | dir = (-dx, -dy) }
+
+
+infect2 : State -> State
+infect2 state = 
+    let 
+        newNodeState = 
+            case Maybe.withDefault Clean (Dict.get state.pos state.infected) of
+                Clean -> Weakened
+                Weakened -> Infected
+                Infected -> Flagged 
+                Flagged -> Clean
+        
+        newInfectionCount = 
+            if newNodeState == Infected then 
+                state.infectionCount + 1
+            else 
+                state.infectionCount
+    in
+        { state | infected = Dict.insert state.pos newNodeState state.infected, infectionCount = newInfectionCount}
+
+
+
+
+step2 : State -> State
+step2 state =
+    state
+        |> turn2
+        |> infect2
+        |> move
+
+-- common stuff
 
 move : State -> State
 move state = 
@@ -73,20 +141,12 @@ move state =
     in
             { state | pos = (x + dx , y + dy) }
 
-infect : State -> State
-infect state = 
-    if Set.member state.pos state.infected then
-        { state | infected = Set.remove state.pos state.infected }
-    else
-        { state | infected = Set.insert state.pos state.infected, infectionCount = state.infectionCount + 1 }
-
-
-step : State -> State
-step state =
-    state
-        |> turn
-        |> infect
-        |> move
+repeat : Int -> (State -> State) -> State -> State
+repeat n step state = 
+    if n == 0 then
+        state
+    else 
+        repeat (n-1) step (step state) 
 
 parseInput : String -> Infected
 parseInput input = 
@@ -94,12 +154,10 @@ parseInput input =
         |> List.indexedMap (,)
         |> List.map parseLine
         |> List.concat
-        |> Set.fromList
+        |> Dict.fromList
 
-parseLine : (Int, String) -> List Pos
+parseLine : (Int, String) -> List (Pos, Node)
 parseLine (y, line) = 
     String.toList line 
-        |> List.indexedMap (\ x ch -> (x,y,ch))
-        |> List.filter (\ (_,_,ch) -> ch == '#')
-        |> List.map (\(x,y,_) -> (x,y))
+        |> List.indexedMap (\ x ch -> ((x,y),if ch == '#' then Infected else Clean))
 
