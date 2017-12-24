@@ -1,103 +1,92 @@
 module Puzzles.Year2017.Day24 exposing (..)
 
 import AdventOfCode.Puzzle exposing (Puzzle, PuzzleSolver, TestSuite, TestResult)
-import List.Extra as LE
+import List.Extra as LE exposing (remove, maximumBy)
+import Tuple exposing (first, second)
 
 puzzle : Puzzle
-puzzle = ( 2017, 24, "Puzzle Title", tests, part1, part2 )
+puzzle = ( 2017, 24, "Electromagnetic Moat", tests, part1, part2 )
 
 tests : TestSuite
 tests = 
-    [-- ( part1 "test-input" == "expected-output",  "Test part 1" )
-    --, ( part2 "test-input" == "expected-output",  "Test part 2" )
+    [ ( part1 "0/2\n2/2\n2/3\n3/4\n3/5\n0/1\n10/1\n9/10" == "31",  "Test part 1" )
+    , ( part2 "0/2\n2/2\n2/3\n3/4\n3/5\n0/1\n10/1\n9/10" == "19",  "Test part 2" )
     ]
 
 type alias Component = (Int, Int)
+type alias Strength = Int
+type alias Length = Int
+type alias SelectionStrategy = List (Length, Strength) -> (Length, Strength)
 
 part1 : PuzzleSolver
 part1 input = 
-    let 
-        allComponents = parseInput input
-    in
-        allComponents
-            |> startCandidates
-            |> List.map (findStrongest allComponents)
-            |> maxOf
-            |> toString
+    parseInput input
+        |> findBridgeStartingWith 0 selectStrongest
+        |> second
+        |> toString
 
 part2 : PuzzleSolver
 part2 input = 
-    let 
-        allComponents = parseInput input
-    in
-        allComponents
-            |> startCandidates
-            |> List.map (findLongest allComponents)
-            |> selectLongesBridge
-            |> Tuple.second
-            |> toString
+    parseInput input
+        |> findBridgeStartingWith 0 selectLongest
+        |> second
+        |> toString
 
-findStrongest : List Component -> Component -> Int
-findStrongest components from = 
+
+findBridgeStartingWith : Int -> SelectionStrategy -> List Component -> (Length, Strength)
+findBridgeStartingWith portType selectionStrategy components = 
     let
-        rest = LE.remove (sort from) components
+        candidates = componentsMatching portType components
 
-        connectWith : Component -> Int
-        connectWith to =  findStrongest rest (flipToMatch from to)
-
-    in
-        (strengthOf from) 
-        + maxOf (List.map connectWith (candidates from rest))
-        
-findLongest : List Component  -> Component -> (Int, Int)
-findLongest components from = 
-    let
-        rest = LE.remove (sort from) components
-        matchingComponents = candidates from rest
-
-        connectWith : Component -> (Int, Int)
-        connectWith to =  findLongest rest (flipToMatch from to)
-
-    in
-        if matchingComponents == [] then
-            (1, strengthOf from)
-        else
+        connect : Component -> (Length, Strength)
+        connect c =
             let
-                (restLen, restStrength) = 
-                    selectLongesBridge (List.map connectWith (candidates from rest))
+                (lengthRest, strengthRest) = findBridgeStartingWith (second c) selectionStrategy (remove (normalize c) components)
             in
-                (1 + restLen, (strengthOf from) + restStrength)
+                (1 + lengthRest, strengthOf c + strengthRest)
+    in
+        if candidates == [] then
+            (0,0)
+        else
+            candidates
+                |> List.map connect 
+                |> selectionStrategy
 
-selectLongesBridge : List (Int, Int) -> (Int, Int) 
-selectLongesBridge list = 
-    list 
-        |> List.sort 
-        |> List.reverse 
-        |> List.head
+selectStrongest : SelectionStrategy
+selectStrongest values = 
+    values
+        |> maximumBy (second)
         |> Maybe.withDefault (-1,-1)
 
-flipToMatch : Component -> Component -> Component
-flipToMatch (a,b) (c,d) = 
-    if (b == c) then
-        (c,d)
-    else 
-        (d,c)
+selectLongest : SelectionStrategy
+selectLongest values = 
+    values
+        |> List.maximum
+        |> Maybe.withDefault (-1,-1)
 
-sort : Component -> Component
-sort (a,b) = 
+
+flipToMatch : Int -> Component -> Component
+flipToMatch portType (a, b) = 
+    if (a == portType) then
+        (a,b)
+    else 
+        (b,a)
+
+normalize : Component -> Component
+normalize (a,b) = 
     if (a <= b) then
         (a,b)
     else 
         (b,a)
 
-startCandidates : List Component -> List Component
-startCandidates components = 
-    candidates (-1,0) components
-
-candidates : Component -> List Component -> List Component
-candidates (_,connectTo) components = 
-    components 
-        |> List.filter (\ (c,d) -> c == connectTo || d == connectTo)
+componentsMatching : Int -> List Component -> List Component
+componentsMatching portType components = 
+    let
+        canConnect (a,b) = a == portType || b == portType
+    in
+        components
+            |> List.filter canConnect
+            |> List.map (flipToMatch portType)
 
 strengthOf : Component -> Int
 strengthOf (a,b) = a + b
@@ -107,7 +96,7 @@ parseInput input =
     let 
         parseLine line = 
             case String.split "/" line of 
-                [a,b] -> sort (toInt a, toInt b)
+                [a,b] -> normalize (toInt a, toInt b)
                 _ -> Debug.log ("Parse error: " ++ line) (-1,-1)
     in
         String.lines input
@@ -115,6 +104,3 @@ parseInput input =
         
 toInt : String -> Int
 toInt = Result.withDefault 0 << String.toInt
-
-maxOf : List Int -> Int
-maxOf = Maybe.withDefault 0 << List.maximum
