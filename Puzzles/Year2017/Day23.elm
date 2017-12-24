@@ -48,7 +48,7 @@ type alias State =
 part1 : PuzzleSolver
 part1 input = 
     parseInput input 
-        |> (initialState 0)
+        |> initialState 0
         |> runUntil programTerminated 
         |> .mulCount
         |> toString
@@ -60,7 +60,7 @@ part2 input =
         -- (because I dont want to hardcode the values from my own input)
         state = 
             parseInput input 
-                |> (initialState 1)
+                |> initialState 1
                 |> runUntil (programCounterIs 8) 
         
         from = Maybe.withDefault 0 (Dict.get "b" state.registers)
