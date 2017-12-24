@@ -17,7 +17,7 @@ tests =
     , ( parseLine "sub x y" == Sub "x" (Register "y"),  "sub x y" )
     , ( parseLine "mul x 5" == Mul "x" (Value 5),       "mul x 5" )
     , ( parseLine "mul x y" == Mul "x" (Register "y"),  "mul x y" )
-    , ( parseLine "jnz 3 5" == Jnz (Value 3) (Value 5),           "jnz 3 5" )
+    , ( parseLine "jnz 3 5" == Jnz (Value 3) (Value 5), "jnz 3 5" )
     , ( parseLine "jnz x y" == Jnz (Register "x") (Register "y"), "jnz x y" )
 --    , ( part2 "test-input" == "expected-output",  "Test part 2" )
     ]
@@ -47,23 +47,36 @@ type alias State =
 
 part1 : PuzzleSolver
 part1 input = 
-    let 
-        initialState = 
-            { registers = Dict.empty
-            , program = parseInput input
-            , pos = 0
-            , programState = Running
-            , mulCount = 0
-            }
-    in
-        runUntilTerminated initialState
-            |> .mulCount
-            |> toString
+    parseInput input 
+        |> (initialState 0)
+        |> runUntil programTerminated 
+        |> .mulCount
+        |> toString
 
 part2 : PuzzleSolver
 part2 input = 
-    countNotPrimes 105700 122700 17    
-    |> toString
+    let 
+        -- get the values of register b and c efter they been initialized. 
+        -- (because I dont want to hardcode the values from my own input)
+        state = 
+            parseInput input 
+                |> (initialState 1)
+                |> runUntil (programCounterIs 8) 
+        
+        from = Maybe.withDefault 0 (Dict.get "b" state.registers)
+        to = Maybe.withDefault 0 (Dict.get "c" state.registers)
+
+    in   
+        countNotPrimes from to 17 |> toString
+
+initialState : Int ->  List Instruction -> State
+initialState startValueOfRegsterA instructions = 
+    { registers = Dict.insert "a" startValueOfRegsterA Dict.empty
+    , program = instructions
+    , pos = 0
+    , programState = Running
+    , mulCount = 0
+    }
 
 
 {-
@@ -92,13 +105,19 @@ countNotPrimes from to step =
         else
             1 + (countNotPrimes (from + step ) to step)
 
+programCounterIs : Int -> State -> Bool
+programCounterIs pos state = 
+    state.pos == pos
 
-runUntilTerminated : State -> State
-runUntilTerminated state = 
-    if (state.programState /= Running) then
+programTerminated : State -> Bool
+programTerminated state = state.programState /= Running
+
+runUntil : (State -> Bool) -> State -> State
+runUntil predicate state = 
+    if predicate state then
         state
     else
-        runUntilTerminated (runInstruction state)
+        runUntil predicate (runInstruction state)
 
 runInstruction : State -> State
 runInstruction state = 
